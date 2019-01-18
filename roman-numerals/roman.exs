@@ -3,7 +3,7 @@ defmodule Roman do
   Convert the number to a roman number.
   """
   @spec numerals(pos_integer) :: String.t()
-  def numerals(number) when number == 0, :do "nulla"
+  def numerals(number) when number == 0, do: "nulla"
   def numerals(number) when number > 0 and number < 4000 do
     [thousand, hundred, ten, one] =
       number
