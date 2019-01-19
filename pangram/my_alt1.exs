@@ -11,13 +11,19 @@ defmodule Pangram do
       true
 
   """
-  @alphabet ?a..?z
 
-  @spec pangram?(String.t) :: boolean
+  @spec pangram?(String.t()) :: boolean
   def pangram?(sentence) do
+    alphabet = ~r/[a-z]/ui
+
     sentence
     |> String.downcase
-    |> String.to_charlist
-    |> (fn chars -> Enum.all?(@alphabet, &(&1 in chars)) end).()
+    |> String.graphemes
+    |> Enum.reduce(MapSet.new(), fn c, acc -> cond do
+        Regex.match?(alphabet, c) -> MapSet.put(acc, c)
+        true -> acc
+      end
+    end)
+    |> (fn alphabet_set -> MapSet.size(alphabet_set) == 26 end).()
   end
 end
