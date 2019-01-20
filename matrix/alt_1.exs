@@ -7,30 +7,16 @@ defmodule Matrix do
   """
   @spec from_string(input :: String.t()) :: %Matrix{}
   def from_string(input) do
-    process_cell = fn cell ->
-      cell
-      |> Integer.parse
-      |> case do
-        {i, _} -> i
-      end
-    end
-
-    process_row = fn row ->
-      row
-      |> String.split
-      |> Enum.map(process_cell)
-    end
-
-    emit_matrix = fn m ->
-      %Matrix{matrix: m}
-    end
-
     input
     |> String.split("\n")
-    |> Enum.map(process_row)
-    |> emit_matrix.()
+    |> Enum.map(&(build_row(&1)))
   end
 
+  defp build_row(row_string) do
+    row_string
+    |> String.split(" ")
+    |> Enum.map(fn x -> String.to_integer(x) end)
+  end
 
   @doc """
   Write the `matrix` out as a string, with rows separated by newlines and
@@ -38,9 +24,16 @@ defmodule Matrix do
   """
   @spec to_string(matrix :: %Matrix{}) :: String.t()
   def to_string(matrix) do
-    matrix.matrix
-    |> Enum.map(&Enum.join(&1, " "))
-    |> Enum.join("\n")
+    matrix
+    |> Enum.reduce("", fn (x, acc) -> acc <> "\n" <> row_to_string(x) end)
+    |> String.trim_leading()
+
+  end
+
+  defp row_to_string(row) do
+    row
+    |> Enum.reduce("", fn (x, acc) -> acc <> " " <> Integer.to_string(x) end)
+    |> String.trim_leading()
   end
 
   @doc """
@@ -48,7 +41,7 @@ defmodule Matrix do
   """
   @spec rows(matrix :: %Matrix{}) :: list(list(integer))
   def rows(matrix) do
-    matrix.matrix
+    matrix
   end
 
   @doc """
@@ -56,7 +49,7 @@ defmodule Matrix do
   """
   @spec row(matrix :: %Matrix{}, index :: integer) :: list(integer)
   def row(matrix, index) do
-    matrix.matrix
+    matrix
     |> Enum.at(index)
   end
 
@@ -65,15 +58,10 @@ defmodule Matrix do
   """
   @spec columns(matrix :: %Matrix{}) :: list(list(integer))
   def columns(matrix) do
-    matrix.matrix
-    |> Enum.reduce(fn row, build_matrix ->
-      for {a, b} <- Enum.zip(build_matrix, row) do
-        cond do
-          is_list(a) -> a ++ [b]
-          true -> [a] ++ [b]  
-        end
-      end
-    end)
+    num_cols = matrix
+    |> List.first()
+    |> Enum.count()
+    Enum.map(0..num_cols - 1, &(column(matrix, &1)))
   end
 
   @doc """
@@ -82,7 +70,6 @@ defmodule Matrix do
   @spec column(matrix :: %Matrix{}, index :: integer) :: list(integer)
   def column(matrix, index) do
     matrix
-    |> columns
-    |> Enum.at(index)
+    |> Enum.map(&(Enum.at(&1, index)))
   end
 end
