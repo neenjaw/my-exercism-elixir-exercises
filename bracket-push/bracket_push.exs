@@ -17,28 +17,28 @@ defmodule BracketPush do
   def check_brackets(str) do
     case str do
       "" -> true
-      _  -> str |> String.graphemes |> process_list
+      _  -> str |> String.graphemes |> do_bracket_check
     end
   end
 
-  def process_list(l, stack \\ [])
-  def process_list([], []), do: true
-  def process_list([], [_|_]), do: false
+  defp do_bracket_check(l, stack \\ [])
+  defp do_bracket_check([], []), do: true
+  defp do_bracket_check([], [_|_]), do: false
 
   # opening bracket function
-  def process_list([c|rest], stack) when c in @opening do
-    process_list(rest, [Map.get(@pairs, c) | stack])
+  defp do_bracket_check([c|rest], stack) when c in @opening do
+    do_bracket_check(rest, [Map.get(@pairs, c) | stack])
   end
 
   # closing bracket functions
-  def process_list([c|_rest], []) when c in @closing, do: false
-  def process_list([c|rest], [c|stack]) 
-    when c in @closing, do: process_list(rest, stack)
-  def process_list([c|_rest], [t|_stack])
+  defp do_bracket_check([c|_rest], []) when c in @closing, do: false
+  defp do_bracket_check([c|rest], [c|stack]) 
+    when c in @closing, do: do_bracket_check(rest, stack)
+  defp do_bracket_check([c|_rest], [t|_stack])
     when c in @closing and c != t, do: false
 
   # non-bracket function 
-  def process_list([_c|rest], stack) do
-    process_list(rest, stack)
+  defp do_bracket_check([_c|rest], stack) do
+    do_bracket_check(rest, stack)
   end
 end
