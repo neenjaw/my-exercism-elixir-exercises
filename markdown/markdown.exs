@@ -10,70 +10,98 @@ defmodule Markdown do
     iex> Markdown.parse("#Header!\n* __Bold Item__\n* _Italic Item_")
     "<h1>Header!</h1><ul><li><em>Bold Item</em></li><li><i>Italic Item</i></li></ul>"
   """
+
+  # Refactor note:
+  # changed to a pipeline instead of nested function calls
   @spec parse(String.t()) :: String.t()
   def parse(m) do
-    patch(Enum.join(Enum.map(String.split(m, "\n"), fn t -> process(t) end)))
+    m
+    |> String.split("\n")
+    |> Enum.map(fn t -> process(t) end)
+    |> Enum.join()
+    |> patch
   end
 
+
+  # Refactor note:
+  # Changed the complicated if-else control to a case control
   defp process(t) do
-    if String.starts_with?(t, "#") || String.starts_with?(t, "*") do
-      if String.starts_with?(t, "#") do
-        enclose_with_header_tag(parse_header_md_level(t))
-      else
-        parse_list_md_level(t)
-      end
-    else
-      enclose_with_paragraph_tag(String.split(t))
+    case String.first(t) do
+      "#" -> parse_header_md_level(t)
+      "*" -> parse_list_md_level(t)
+       _  -> parse_paragraph(t)
     end
   end
 
+  # Refactor note:
+  # changed from String.split/1 to String.split/3 to remove an extra Enum.join/2 call
+  # changed to string interpolation
   defp parse_header_md_level(hwt) do
-    [h | t] = String.split(hwt)
-    {to_string(String.length(h)), Enum.join(t, " ")}
+    [h | t] = String.split(hwt, " ", parts: 2)
+    
+    {"#{String.length(h)}", t}
+    |>enclose_with_header_tag()
   end
 
+  # Refactor note:
+  # String concatenation to string interpolation, changed to pipeline
   defp parse_list_md_level(l) do
-    t = String.split(String.trim_leading(l, "* "))
-    "<li>" <> join_words_with_tags(t) <> "</li>"
+    l
+    |> String.trim_leading("* ")
+    |> String.split()
+    |> join_words_with_tags()
+    |> enclose_with_li_tag()
+  end
+  
+  defp parse_paragraph(t) do
+    t
+    |> String.split()
+    |> join_words_with_tags()
+    |> enclose_with_paragraph_tag()
   end
 
-  defp enclose_with_header_tag({hl, htl}) do
-    "<h" <> hl <> ">" <> htl <> "</h" <> hl <> ">"
-  end
+  # Refactor note:
+  # Created enclose with li tag for consistency with previous design
+  defp enclose_with_li_tag(t), do: "<li>#{t}</li>"
 
-  defp enclose_with_paragraph_tag(t) do
-    "<p>#{join_words_with_tags(t)}</p>"
-  end
+  # Refactor note:
+  # String concatenation to string interpolation
+  defp enclose_with_header_tag({hl, htl}), do: "<h#{hl}>#{htl}</h#{hl}>"
 
+  # Refactor note:
+  # Moved join words function call to outer call to keep this function simple
+  defp enclose_with_paragraph_tag(t), do: "<p>#{t}</p>"
+
+  # Refactor note:
+  # pipe operator for clarity, map_join instead of map then successive join call
   defp join_words_with_tags(t) do
-    Enum.join(Enum.map(t, fn w -> replace_md_with_tag(w) end), " ")
+    t
+    |> Enum.map_join(" ", fn w -> replace_md_with_tag(w) end)
   end
 
+  # declare the regex match and replace rule pairs
+  @md_to_html_tags [
+    {~r/^__([^_])/, "<strong>\\1"},
+    {~r/([^_])__$/, "\\1</strong>"},
+    {~r/^_([^_])/, "<em>\\1"},
+    {~r/([^_])_$/, "\\1</em>"}
+  ]
+
+  # Refactor note:
+  # While could use overloading to detect the prefix notation 
+  # (eg. __ <> "w" or _ <> "w") I chose to Regex and String.replace just 
+  # to make it consistent since overloading can't match to an unknown string 
+  # on the left side (eg. "w" <> "__")
   defp replace_md_with_tag(w) do
-    replace_suffix_md(replace_prefix_md(w))
-  end
-
-  defp replace_prefix_md(w) do
-    cond do
-      w =~ ~r/^#{"__"}{1}/ -> String.replace(w, ~r/^#{"__"}{1}/, "<strong>", global: false)
-      w =~ ~r/^[#{"_"}{1}][^#{"_"}+]/ -> String.replace(w, ~r/_/, "<em>", global: false)
-      true -> w
-    end
-  end
-
-  defp replace_suffix_md(w) do
-    cond do
-      w =~ ~r/#{"__"}{1}$/ -> String.replace(w, ~r/#{"__"}{1}$/, "</strong>")
-      w =~ ~r/[^#{"_"}{1}]/ -> String.replace(w, ~r/_/, "</em>")
-      true -> w
-    end
+    @md_to_html_tags
+    |> Enum.reduce(w, fn {rule, replace}, w -> String.replace(w, rule, replace) end)
   end
 
   defp patch(l) do
     String.replace_suffix(
-      String.replace(l, "<li>", "<ul>" <> "<li>", global: false),
+      String.replace(l, "<li>", "<ul><li>", global: false),
       "</li>",
-      "</li>" <> "</ul>"
+      "</li></ul>"
     )
   end
 end
