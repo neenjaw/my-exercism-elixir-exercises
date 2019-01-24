@@ -17,19 +17,32 @@ defmodule Markdown do
   def parse(m) do
     m
     |> String.split("\n")
-    |> Enum.map(fn t -> process(t) end)
-    |> Enum.join()
-    |> patch
+    # process each line of the mark down text, keeping state for whether a <ul> tag is open to
+    # be able to handle it appropriately 
+    |> Enum.reduce([ul_open: false, html: ""], fn line, [ul_open: list_open, html: html] ->
+      {line_type, processed_line} = line |> process
+       
+      cond do
+        line_type == :list and list_open == false -> [ul_open: true, html:  (html <> "<ul>" <> processed_line)]
+        line_type == :list and list_open == true ->  [ul_open: true, html:  (html <> processed_line)]
+        line_type != :list and list_open == true ->  [ul_open: false, html: (html <> "</ul>" <> processed_line)]
+        true -> [ul_open: list_open, html: (html <> processed_line)]
+      end
+    end)
+    # close the ul tag if it is open after the last line
+    |> (fn 
+      [ul_open: true, html: html] -> html <> "</ul>"
+      [ul_open: _,    html: html] -> html
+    end).()
   end
-
 
   # Refactor note:
   # Changed the complicated if-else control to a case control
   defp process(t) do
     case String.first(t) do
-      "#" -> parse_header_md_level(t)
-      "*" -> parse_list_md_level(t)
-       _  -> parse_paragraph(t)
+      "#" -> {:header,    parse_header_md_level(t)}
+      "*" -> {:list,      parse_list_md_level(t)}
+       _  -> {:paragraph, parse_paragraph(t)}
     end
   end
 
