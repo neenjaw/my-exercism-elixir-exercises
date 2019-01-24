@@ -4,5 +4,13 @@ defmodule Isogram do
   """
   @spec isogram?(String.t()) :: boolean
   def isogram?(sentence) do
+    just_letters = sentence
+    |> String.downcase
+    |> String.replace(~r/[^\w]/, "")
+
+    uniq_letter_count = just_letters
+    |> String.graphemes
+    |> MapSet.new
+    |> MapSet.size == String.length(just_letters)
   end
 end
