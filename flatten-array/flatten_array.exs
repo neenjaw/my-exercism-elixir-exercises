@@ -1,18 +1,28 @@
 defmodule FlattenArray do
   @doc """
-    Accept a list and return the list flattened without nil values.
+  Accept a list and return the list 
+  flattened without nil values.
 
-    ## Examples
+  ## Examples
 
-      iex> FlattenArray.flatten([1, [2], 3, nil])
+  iex> FlattenArray.flatten([1, [2], 3, nil])
       [1,2,3]
 
-      iex> FlattenArray.flatten([nil, nil])
+  iex> FlattenArray.flatten([nil, nil])
       []
 
   """
 
   @spec flatten(list) :: list
   def flatten(list) do
+    flatten(list, []) |> Enum.reverse
   end
+  
+  defp flatten([], acc), do: acc
+  defp flatten([nil|rest], acc), do: flatten(rest, acc)
+  defp flatten([e|rest], acc) when is_list(e) do
+    acc_child = flatten(e,acc)
+    flatten(rest, acc_child)
+  end
+  defp flatten([e|rest], acc), do: flatten(rest, [e|acc])
 end
