@@ -16,28 +16,28 @@ defmodule BinarySearch do
       {:ok, 2}
 
   """
-
   @spec search(tuple, integer) :: {:ok, integer} | :not_found
   def search(numbers, key) do
-    search(numbers, 0, (tuple_size(numbers)-1), key)
+    last_index = tuple_size(numbers)-1
+    search(numbers, 0, last_index, key)
   end
   
-  def search({},  _, _, _), do: :not_found
-  def search({e}, _, _, e), do: {:ok, 0}
-  def search({_}, _, _, _), do: :not_found
+  # Function definitions to match edge cases
+  defp search({},  _, _, _), do: :not_found
+  defp search({e}, _, _, e), do: {:ok, 0}
+  defp search({_}, _, _, _), do: :not_found
   
-  def search(t, first_index, last_index, goal) when first_index <= last_index do
+  # either find the match at the midpoint, or constrain the search and try again
+  defp search(t, first_index, last_index, goal) when first_index <= last_index do
     midpoint = (div (last_index - first_index), 2) + first_index
     e = elem t, midpoint
     
-    # IO.inspect(t)
-    # IO.puts("elem: #{e}, first: #{first_index}, last: #{last_index}, midpoint: #{midpoint}, goal: #{goal}\n")
-
     cond do
       goal == e -> {:ok, midpoint}
       goal < e  -> search(t, first_index, midpoint-1, goal)
       goal > e  -> search(t, midpoint+1, last_index, goal)
     end
   end
-  def search(_t, first_index, last_index, _goal) when first_index > last_index, do: :not_found
+  # if the indexes create a "negative" search area, means that the key does not exist in the tuple
+  defp search(_t, first_index, last_index, _goal) when first_index > last_index, do: :not_found
 end
