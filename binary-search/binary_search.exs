@@ -23,7 +23,7 @@ defmodule BinarySearch do
   end
   
   def search({},  _, _, _), do: :not_found
-  def search({e}, _, _, e), do: {:ok, e}
+  def search({e}, _, _, e), do: {:ok, 0}
   def search({_}, _, _, _), do: :not_found
   
   def search(t, first_index, last_index, goal) when first_index <= last_index do
@@ -34,7 +34,7 @@ defmodule BinarySearch do
     # IO.puts("elem: #{e}, first: #{first_index}, last: #{last_index}, midpoint: #{midpoint}, goal: #{goal}\n")
 
     cond do
-      goal == e -> {:ok, e}
+      goal == e -> {:ok, midpoint}
       goal < e  -> search(t, first_index, midpoint-1, goal)
       goal > e  -> search(t, midpoint+1, last_index, goal)
     end
