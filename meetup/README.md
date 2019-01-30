@@ -31,7 +31,7 @@ descriptor calculate the date of the actual meetup.  For example, if given
 Execute the tests with:
 
 ```bash
-$ elixir meetup_test.exs
+elixir meetup_test.exs
 ```
 
 ### Pending tests
@@ -66,4 +66,5 @@ out there where answers might be found.
 Jeremy Hinegardner mentioned a Boulder meetup that happens on the Wednesteenth of every month [https://twitter.com/copiousfreetime](https://twitter.com/copiousfreetime)
 
 ## Submitting Incomplete Solutions
+
 It's possible to submit an incomplete solution so you can see how others have completed the exercise.
