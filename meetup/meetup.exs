@@ -56,66 +56,65 @@ defmodule Meetup do
     do: get_base_state(date, weekday, schedule)
 
   defp get_base_state(date, weekday, schedule), 
-    do: %{schedule: schedule, search_date: date, looking_for: weekday, num_weekday_found: 0, complete: false}
+    do: %{schedule: schedule, search_date: date, looking_for: weekday, weekdays_found: 0}
 
   defp search(state) do
-    search_state = check_date(state)
+    result = check_date(state)
 
-    case search_state do
-      %{complete: true}  -> format_found_date(search_state)
-      %{num_weekday_found: 0} -> search_state |> get_next_day_to_search |> search
-      %{num_weekday_found: _} -> search_state |> get_next_day_to_search(7) |> search
+    case result do
+      {:ok, date} -> date
+      {:next, %{weekdays_found: 0}} -> result |> elem(1) |> get_next_search |> search
+      {:next, %{weekdays_found: _}} -> result |> elem(1) |> get_next_search(7) |> search
     end
   end
 
-  defp get_next_day_to_search(%{search_date: date} = state, increment \\ 1) do
-    # Add one day to the date, then return the new state
+  defp get_next_search(%{search_date: date} = state, increment \\ 1) do
+    # Add the day increment, then return the new state
     %{state | search_date: (date |> Date.add(increment))}
   end
 
-  defp format_found_date(%{search_date: date}) do
+  defp format_found_date(date) do
     {date.year, date.month, date.day}
   end
 
   # check if the weekday matches, if it does, check the schedule if it is the correct day
-  defp check_date(%{search_date: date, looking_for: weekday, num_weekday_found: n} = state) do
+  defp check_date(%{search_date: date, looking_for: weekday, weekdays_found: n} = state) do
     case @weekday_int_to_atom[Date.day_of_week(date)] do
-      ^weekday -> %{state | num_weekday_found: n+1} |> check_schedule()
-      _        -> state
+      ^weekday -> %{state | weekdays_found: n+1} |> check_schedule()
+      _        -> {:next, state}
     end
   end
 
   # :first
-  defp check_schedule(%{schedule: :first, num_weekday_found: 1} = state), 
-    do: %{state | complete: true}
+  defp check_schedule(%{schedule: :first, weekdays_found: 1} = state), 
+    do: {:ok, format_found_date(state.search_date)}
 
   # :second
-  defp check_schedule(%{schedule: :second, num_weekday_found: n} = state) when n < 2,  
-    do: state
-  defp check_schedule(%{schedule: :second, num_weekday_found: 2} = state),
-    do: %{state | complete: true}    
+  defp check_schedule(%{schedule: :second, weekdays_found: n} = state) when n < 2,  
+    do: {:next, state}
+  defp check_schedule(%{schedule: :second, weekdays_found: 2} = state),
+    do: {:ok, format_found_date(state.search_date)}  
 
   # :third
-  defp check_schedule(%{schedule: :third, num_weekday_found: n} = state) when n < 3,  
-    do: state
-  defp check_schedule(%{schedule: :third, num_weekday_found: 3} = state), 
-    do: %{state | complete: true}    
+  defp check_schedule(%{schedule: :third, weekdays_found: n} = state) when n < 3,  
+    do: {:next, state}
+  defp check_schedule(%{schedule: :third, weekdays_found: 3} = state), 
+    do: {:ok, format_found_date(state.search_date)} 
 
   # :fourth
-  defp check_schedule(%{schedule: :fourth, num_weekday_found: n} = state) when n < 4,  
-    do: state
-  defp check_schedule(%{schedule: :fourth, num_weekday_found: 4} = state),
-    do: %{state | complete: true}
+  defp check_schedule(%{schedule: :fourth, weekdays_found: n} = state) when n < 4,  
+    do: {:next, state}
+  defp check_schedule(%{schedule: :fourth, weekdays_found: 4} = state),
+    do: {:ok, format_found_date(state.search_date)}
 
   # :last
   defp check_schedule(%{schedule: :last, initial_month: m, search_date: (%Date{month: m} = date)} = state),
-    do: %{state | last_date_found: date}
+    do: {:next, %{state | last_date_found: date}}
   defp check_schedule(%{schedule: :last} = state), 
-    do: %{state | search_date: state.last_date_found, complete: true}
+    do: {:ok, format_found_date(state.last_date_found)}
 
   # :teenth
-  defp check_schedule(%{schedule: :teenth, search_date: %Date{day: d}} = state)
-    when d in @teenth_date_range, 
-    do: %{state | complete: true}
-  defp check_schedule(%{schedule: :teenth} = state), do: state
+  defp check_schedule(%{schedule: :teenth, search_date: %Date{day: d}} = state) when d in @teenth_date_range, 
+    do: {:ok, format_found_date(state.search_date)}
+  defp check_schedule(%{schedule: :teenth} = state), do: {:next, state}
 end
