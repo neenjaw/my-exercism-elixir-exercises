@@ -1,4 +1,22 @@
+defmodule Direction do
+  @directions [:north, :east, :south, :west]
+
+  defguard is_direction(value) 
+    when is_atom(value) 
+    and value in @directions
+end
+
+defmodule Position do
+  defguard is_coordinate(value) 
+    when is_tuple(value) 
+    and tuple_size(value) == 2
+    and is_integer(elem value, 0) 
+    and is_integer(elem value, 1)
+end
+
 defmodule RobotSimulator do
+  import Direction, only: [is_direction: 1]
+  import Position, only: [is_coordinate: 1]
 
   defmodule Robot do
     @enforce_keys [:direction, :x_position, :y_position]
@@ -12,8 +30,6 @@ defmodule RobotSimulator do
     }
   end
 
-  @valid_directions [:north, :east, :south, :west]
-
   @doc """
   Create a Robot Simulator given an initial direction and position.
 
@@ -21,11 +37,11 @@ defmodule RobotSimulator do
   """
   @spec create(direction :: atom, position :: {integer, integer}) :: Robot
   def create(direction \\ :north, position \\ {0,0})
-  def create(direction, {x, y}) 
-    when direction in @valid_directions and is_integer(x) and is_integer(y), 
+  def create(direction, {x, y} = position) 
+    when is_direction(direction) and is_coordinate(position), 
     do: %Robot{direction: direction, x_position: x, y_position: y}
   # Match invalid position, return error
-  def create(direction, _) when direction in @valid_directions, do: {:error, "invalid position"}
+  def create(direction, _) when is_direction(direction), do: {:error, "invalid position"}
   # Match invalid direction, return error
   def create(_, _), do: {:error, "invalid direction"}
 
