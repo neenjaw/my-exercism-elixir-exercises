@@ -63,8 +63,8 @@ defmodule Meetup do
 
     case result do
       {:ok, date} -> date
-      {:next, %{weekdays_found: 0}} -> result |> elem(1) |> get_next_search |> search
-      {:next, %{weekdays_found: _}} -> result |> elem(1) |> get_next_search(7) |> search
+      {:next, %{weekdays_found: 0} = result_state} -> result_state |> get_next_search |> search
+      {:next, %{weekdays_found: _} = result_state} -> result_state |> get_next_search(7) |> search
     end
   end
 
