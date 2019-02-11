@@ -1,4 +1,10 @@
 defmodule ScaleGenerator do
+
+  @sharp_notes ~w(C C# D D# E F F# G G# A A# B)
+  @flat_notes  ~w(C Db D Eb E F Gb G Ab A Bb B)
+
+  @flat_tonics ~w(F Bb Eb Ab Db Gb d g c f bb eb)
+
   @doc """
   Find the note for a given interval (`step`) in a `scale` after the `tonic`.
 
@@ -16,7 +22,18 @@ defmodule ScaleGenerator do
   @spec step(scale :: list(String.t()), tonic :: String.t(), step :: String.t()) ::
           list(String.t())
   def step(scale, tonic, step) do
+    cond do
+      List.first(scale) == List.last(scale) -> Enum.drop(scale, 1)
+      true -> scale
+    end
+    |> Stream.cycle
+    |> Stream.drop_while(fn note -> note != tonic end)
+    |> Stream.drop(how_many_steps(step))
+    |> Stream.take(1)
+    |> Enum.to_list
+    |> List.first
   end
+
 
   @doc """
   The chromatic scale is a musical scale with thirteen pitches, each a semitone
@@ -34,6 +51,13 @@ defmodule ScaleGenerator do
   """
   @spec chromatic_scale(tonic :: String.t()) :: list(String.t())
   def chromatic_scale(tonic \\ "C") do
+    formatted_tonic = format_tonic(tonic)
+
+    @sharp_notes
+    |> Stream.cycle
+    |> Stream.drop_while(fn note -> note != formatted_tonic end)
+    |> Stream.take(13)
+    |> Enum.to_list
   end
 
   @doc """
@@ -50,6 +74,13 @@ defmodule ScaleGenerator do
   """
   @spec flat_chromatic_scale(tonic :: String.t()) :: list(String.t())
   def flat_chromatic_scale(tonic \\ "C") do
+    formatted_tonic = format_tonic(tonic)
+
+    @flat_notes
+    |> Stream.cycle
+    |> Stream.drop_while(fn note -> note != formatted_tonic end)
+    |> Stream.take(13)
+    |> Enum.to_list
   end
 
   @doc """
@@ -63,8 +94,10 @@ defmodule ScaleGenerator do
   For all others, use the regular chromatic scale.
   """
   @spec find_chromatic_scale(tonic :: String.t()) :: list(String.t())
-  def find_chromatic_scale(tonic) do
-  end
+  def find_chromatic_scale(tonic) when tonic in @flat_tonics, 
+    do: tonic |> flat_chromatic_scale
+
+  def find_chromatic_scale(tonic), do: tonic |> chromatic_scale
 
   @doc """
   The `pattern` string will let you know how many steps to make for the next
@@ -78,6 +111,35 @@ defmodule ScaleGenerator do
   C D E F G A B C
   """
   @spec scale(tonic :: String.t(), pattern :: String.t()) :: list(String.t())
-  def scale(tonic, pattern) do
+  def scale(tonic, pattern) when tonic in @flat_tonics do
+    do_scale(tonic, pattern, @flat_notes)
   end
+  def scale(tonic, pattern) do
+    do_scale(tonic, pattern, @sharp_notes)
+  end
+
+  defp do_scale(tonic, pattern, notes) do
+    formatted_tonic = format_tonic(tonic)
+
+    starting_notes = notes
+    |> Stream.cycle
+    |> Stream.drop_while(fn note -> note != formatted_tonic end)
+
+    pattern
+    |> String.graphemes
+    |> Enum.reduce({starting_notes, [formatted_tonic]}, fn step, {notes, scale} ->
+      next_notes = notes |> Stream.drop(how_many_steps(step))
+      next_note = next_notes |> Stream.take(1) |> Enum.to_list |> List.first
+
+      {next_notes, [next_note | scale]}
+    end)
+    |> elem(1)
+    |> Enum.reverse
+  end
+
+  defp how_many_steps("m"), do: 1
+  defp how_many_steps("M"), do: 2
+  defp how_many_steps("A"), do: 3
+
+  defp format_tonic(tonic), do: tonic |> String.capitalize
 end
