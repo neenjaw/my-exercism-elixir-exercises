@@ -4,23 +4,10 @@ defmodule Gigasecond do
   """
   @spec from({{pos_integer, pos_integer, pos_integer}, {pos_integer, pos_integer, pos_integer}}) ::
           :calendar.datetime()
-  def from({{year, month, day}, {hours, minutes, seconds}}) do
-    %DateTime{
-      year: year, month: month, day: day, hour: hours, minute: minutes, second: seconds,
-      std_offset: 0, time_zone: "Etc/UTC", utc_offset: 0, zone_abbr: "UTC"
-    }
-    |> DateTime.add(1_000_000_000, :second)
-    |> do_to_tuple
+  def from({{year, month, day}, {hours, minutes, seconds}} = dt) do
+    dt
+    |> NaiveDateTime.from_erl!
+    |> NaiveDateTime.add(1_000_000_000)
+    |> NaiveDateTime.to_erl
   end
-
-  defp do_to_tuple(%DateTime{year: year, 
-                             month: month, 
-                             day: day, 
-                             hour: hour, 
-                             minute: minute, 
-                             second: second}) do
-
-    {{year, month, day},{hour, minute, second}}
-  end
-
 end
