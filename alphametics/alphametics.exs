@@ -22,14 +22,15 @@ defmodule Alphametics do
     with fpuzzle              <- String.upcase(puzzle),
          equation             <- get_equation(fpuzzle),
          true                 <- valid_puzzle?(equation),
-         raw_letter_value_map <- get_letters(fpuzzle),
+         raw_letter_value_map <- get_letter_value_map(fpuzzle),
          letter_value_map     <- remove_zero_possibilities(raw_letter_value_map, fpuzzle),
-         rules                <- build_constraint_rules(letter_value_map, fpuzzle, equation),
+         rules                <- build_constraint_rules(equation),
          letters              <- Map.keys(letter_value_map),
          {:ok, solution}      <- generate_solution(letters, letter_value_map, equation, rules)
     do
       solution
     else
+      false -> nil
       :no_solution -> nil
     end
   end
@@ -42,7 +43,7 @@ defmodule Alphametics do
       |> (fn {left, [_eq | right]} -> {left, right} end).()
   end
   
-  def valid_puzzle?({left,right}) do
+  defp valid_puzzle?(_equation = {left,right}) do
     num_left_terms = length(left)
     num_right_terms = length(right)
     
@@ -57,8 +58,8 @@ defmodule Alphametics do
           or ((left |> hd) == (right |> hd)) )
   end
   
-  def max_term_length([]), do: nil
-  def max_term_length(terms) when is_list(terms) do
+  defp max_term_length([]), do: nil
+  defp max_term_length(terms) when is_list(terms) do
     do_max_term_length(terms)
   end
   
@@ -73,14 +74,14 @@ defmodule Alphametics do
     end
   end
   
-  def get_letters(puzzle) do
+  defp get_letter_value_map(puzzle) do
     puzzle
       |> to_charlist
       |> Enum.filter(&(&1 in ?A..?Z))
       |> Map.new(fn c -> {c, @initial_possibiltiies} end)
   end
 
-  def remove_zero_possibilities(letter_map, puzzle) do
+  defp remove_zero_possibilities(letter_map, puzzle) do
     Regex.scan(~r/(^|\W)(?'letter'\w)/u, puzzle, capture: :all_names) 
       |> List.flatten 
       |> Enum.uniq
@@ -94,21 +95,23 @@ defmodule Alphametics do
       end)
   end
 
-  def build_constraint_rules(letter_map, _puzzle, equation) do
-    [] ++ column_restrictions(letter_map, equation)
-  end
-
-  def column_restrictions(_letter_map, {left, right}) do
+  defp build_constraint_rules(_equation = {left, right}) do
     left_by_column = left |> by_column
     right_by_column = right |> by_column
 
     combined_by_column = combine(left_by_column, right_by_column)
 
-    []
-    |> Kernel.++(create_column_rules(combined_by_column))
+    create_column_rules(combined_by_column)
   end
 
-  def by_column(terms) do
+  # takes the terms from a left-right orientation to a column orientation
+  #   ["BB", "I"] -> [{"-", "B"}, {"I", "B"}]
+  # Dashes are used as place holders for no digit.  And the tuples now represent:
+  # 
+  #   - I 
+  #   B B 
+  # 
+  defp by_column(terms) do
     sorted_terms = terms
       |> Enum.map(&({&1, String.length(&1), String.graphemes(&1)}))
       |> Enum.sort(fn {_, length_a, _}, {_, length_b, _} -> 
@@ -124,7 +127,19 @@ defmodule Alphametics do
     |> Enum.zip
   end
   
-  def combine(left, right) do
+  # Combines the right and left sides of the equation to a column orentation
+  #   [{"-", "B"}, {"I", "B"}], ["I", "L", "L"]
+  # becomes:
+  #   [{{"-"}, {"I"}}, {{"-", "B"},{"L"}}, {{"I", "B"},{"L"}}]
+  # which represents
+  # 
+  # - - I
+  # - B B
+  # _____
+  # I L L
+  # 
+  # We do this because Enum.zip will only completely zip evenly matched lists
+  defp combine(left, right) do
     length_left = length(left)
     length_right = length(right)
     
@@ -141,68 +156,85 @@ defmodule Alphametics do
     Enum.zip(normalized_left, normalized_right)
   end
   
-  def create_column_rules(columns, state \\ :start)
-  def create_column_rules(columns, :start) do
-    create_column_rules(columns, %{
-      :rules => [], 
-      :first => true,
-      :rev_cols => [],
-      })
+  # Remove the dashes to now build the column rules
+  # As assumption is made that the right hand side of the equation only contains one term,
+  # so we can destructure in the parameters to get the letter directly
+  defp create_column_rules(columns, reversed_colums \\ [])
+  defp create_column_rules([], reversed_columns), do: do_create_column_rules(reversed_columns)
+  defp create_column_rules([{left, {right}} | rest], reversed_colums) do
+    filtered_left = 
+      left 
+      |> Tuple.to_list
+      |> Enum.filter(fn d -> d != "-" end)
+
+    create_column_rules(rest, [{filtered_left, right} | reversed_colums])
   end
-  def create_column_rules([], state) do
-    [{last_left, last_right} | _] = state.rev_cols
-    
-    last_left_list = last_left |> Tuple.to_list
-    {last_right_letter} = last_right
-    
-    last_letters = [last_right_letter | last_left_list]
+
+  # build the list of functions to be returned for use in pruning the decision tree to
+  # be able to backtrack efficiently
+  defp do_create_column_rules(reversed_columns, rules \\ [])
+  # the functions are ordered to be processed from the smallest digit place to the largest
+  defp do_create_column_rules([], rules), do: rules |> Enum.reverse
+  defp do_create_column_rules([{adds_letter_list, sum_letter} | rest], rules) do
+    column_letters = [sum_letter | adds_letter_list]
       |> Enum.join
       |> to_charlist
     
-    last_letter_set = last_letters
+    column_letter_set = column_letters
       |> MapSet.new
 
-    last_rule = fn soln_acc ->
-      required_letters = last_letter_set
-        # |> IO.inspect(label: "req: letters, 167")
-      soln_letters = soln_acc 
-        |> Enum.map(fn {c, _v} -> c end)
+    # How each rule works:
+    #   Use the passed in solution map to see if the letters needed to check this
+    #   rule have been labelled, if it has, then use the column letters available
+    #   to the function via closure to then apply the labeled values and test to see
+    #   if it generates an acceptable answer.  If there is a carryover amount, return
+    #   it as well
+    rule = fn soln_map, amount_carried_over ->
+      required_letters_set = column_letter_set
+      soln_letters_set = soln_map 
+        |> Map.keys
         |> MapSet.new
-        # |> IO.inspect(label: "sol: letters, 171")
 
-      case MapSet.subset?(required_letters, soln_letters) do
-        # false -> true |> IO.inspect(label: "not a subset")
-        true  -> 
-          soln_map = soln_acc |> Map.new
-          
-          [rl_val | ll_vals] = last_letters
-            |> Enum.map(fn c -> soln_map[c] end)
-          
-          ll_vals
-            |> Enum.sum
-            |> Integer.digits
-            |> List.last
-            |> Kernel.==(rl_val)
-            # |> IO.inspect(label: "subset")
+      unless MapSet.subset?(required_letters_set, soln_letters_set) do
+        :column_not_labeled
+      else
+        [sum_digit | adds] = column_letters
+          |> Enum.map(fn c -> soln_map[c] end)
+        
+        adds_sum_digits = adds
+          |> Enum.sum
+          |> Kernel.+(amount_carried_over)
+          |> Integer.digits
+
+        adds_last_digit = adds_sum_digits
+          |> List.last
+
+        amount_to_carry_over = adds_sum_digits
+          |> List.delete_at(-1)
+          |> Integer.undigits
+
+        [match: (adds_last_digit == sum_digit), carry: amount_to_carry_over]
       end
     end
-  
-    [last_rule | state.rules]
-  end
-  def create_column_rules([column | rest], state) do
-    rules = []
 
-    create_column_rules(
-      rest, 
-      %{state | rev_cols: [column | state.rev_cols], 
-      rules: rules ++ state.rules})
+    do_create_column_rules(rest, [rule | rules])
   end
 
-  def test_equation({left, right}, solution) do
+  defp check_rules(rules, soln_map, amount_carried_over \\ 0)
+  defp check_rules([], _, _), do: :ok
+  defp check_rules([rule | rules], soln_map, amount_carried_over) do
+    case rule.(soln_map, amount_carried_over) do
+      [match: true, carry: next_carry] -> check_rules(rules, soln_map, next_carry)
+      :column_not_labeled -> :label_more_letters
+      _ -> :backtrack
+    end
+  end
+
+  defp test_equation({left, right}, solution) do
     get_value_of(left, solution) == get_value_of(right, solution)
   end
 
-  def get_value_of(terms,solution) do
+  defp get_value_of(terms,solution) do
     terms
       |> Enum.map(fn term ->
         term
@@ -213,17 +245,15 @@ defmodule Alphametics do
       |> Enum.sum
   end
 
-  def generate_solution(chars, possible_vals, eq, rules, soln_map \\ %{})
-  def generate_solution([], _, eq, _rules, soln_map) do
-    # Base case, no more letters to generate a solution for
-    # so test the equation
-    
-    case test_equation(eq, soln_map) do
-      true -> {:ok, soln_map}
-      _ -> :no_solution
+  defp generate_solution(chars, possible_vals, eq, rules, soln_map \\ %{})
+  defp generate_solution([], _, eq, _rules, soln_map) do
+    # Base case, no more letters to generate a solution for so test the equation
+    cond do
+      test_equation(eq, soln_map) -> {:ok, soln_map}
+      true                        -> :no_solution
     end
   end
-  def generate_solution([char | chars], value_map, eq, rules, soln_map) do
+  defp generate_solution([char | chars], value_map, eq, rules, soln_map) do
   
     next_values =
       get_next_char_values(char, value_map, soln_map)
@@ -234,17 +264,10 @@ defmodule Alphametics do
       [value | remaining_values] ->     
         updated_soln_map = Map.put(soln_map, char, value)
 
-        rule_result = rules
-          # |> IO.inspect(label: "test rules, 235")
-          |> Enum.map(fn f -> f.(updated_soln_map) end)
-          # |> IO.inspect(label: "tested rules, 238")
-          |> Enum.reduce(true, fn r, conj -> r and conj end)
-          # |> IO.inspect(label: "reduced, 240")
-
         current_result =
-          case rule_result do
-            true -> generate_solution(chars, value_map, eq, rules, updated_soln_map)
-            _ -> :no_solution
+          case check_rules(rules, soln_map) do
+            :backtrack -> :no_solution
+            _ -> generate_solution(chars, value_map, eq, rules, updated_soln_map)
           end
         
         case current_result do
@@ -260,19 +283,18 @@ defmodule Alphametics do
     end
   end
   
-  
-  def get_next_char_values(char, value_map, soln_map) do
+  defp get_next_char_values(char, value_map, soln_map) do
     value_map[char] 
       |> do_get_next_char_values(soln_map)
   end
   
-  def do_get_next_char_values([], _soln_map), do: :no_value
-  def do_get_next_char_values(values, soln_map = %{}) when map_size(soln_map) == 0, do: values
-  def do_get_next_char_values(values, soln_map) do
+  defp do_get_next_char_values([], _soln_map), do: :no_value
+  defp do_get_next_char_values(values, soln_map = %{}) when map_size(soln_map) == 0, do: values
+  defp do_get_next_char_values(values, soln_map) do
+    solution_values = Map.values(soln_map)
+
     values
       # filter out solutions that are already picked from potentials
-      |> Enum.reject(fn value ->
-        value in (soln_map |> Map.values)
-      end)
+      |> Enum.reject(fn value -> value in solution_values end)
   end
 end
