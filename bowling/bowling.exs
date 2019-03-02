@@ -135,12 +135,12 @@ defmodule Bowling do
   # Recursively score the stack of frames, keeping an accumulator for the rolls and score sum
   defp do_scoring(frames, roll_acc \\ [], sum_acc \\ 0)
   defp do_scoring([], _roll_acc, sum_acc), do: sum_acc
-  defp do_scoring([%F{index: i, rolls: rs} | prev_frames], roll_acc, sum_acc) when i == @last_frame do
+  defp do_scoring([%F{index: @last_frame, rolls: rs} | prev_frames], roll_acc, sum_acc) do
     frame_sum = rs |> Enum.sum
 
     do_scoring(prev_frames, (rs ++ roll_acc), (sum_acc + frame_sum))
   end
-  defp do_scoring([%F{index: i, rolls: rs} | prev_frames], roll_acc, sum_acc) do
+  defp do_scoring([%F{rolls: rs} | prev_frames], roll_acc, sum_acc) do
     frame_sum = rs |> Enum.sum
 
     frame_bonus =
