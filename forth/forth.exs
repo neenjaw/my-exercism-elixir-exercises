@@ -9,6 +9,9 @@ defmodule Forth do
   # Match whitespace, binary nonprintable, ASCII control characters
   @input_chunk_regex ~r/\s|[\x00-\x1A]|[\cA-\cZ]/u
 
+  @definition_start ":"
+  @definition_end ";"
+
   @doc """
   Create a new evaluator.
   """
@@ -16,7 +19,7 @@ defmodule Forth do
   def new(), do: %F{evaluator: get_default_evaluator()}
 
   # Create the default evaluator function map
-  def get_default_evaluator do
+  defp get_default_evaluator do
     %{}
     |> Map.put("+", &operation_add/1)
     |> Map.put("-", &operation_subtract/1)
@@ -105,7 +108,6 @@ defmodule Forth do
     formatted_s = s |> String.downcase
 
     inputs = Regex.split(@input_chunk_regex, formatted_s, trim: true)
-    |> IO.inspect(label: "105")
 
     do_eval(ev, inputs)
   end
@@ -119,7 +121,7 @@ defmodule Forth do
       {:defined_operation, op}    -> handle_operation(ev, op)
       {:integer_number, i}        -> handle_integer(ev, i)
       {:unknown_word, uw}         ->
-        raise Forth.UnknownWord, message: "'#{uw}' is an unknown word"
+        raise Forth.UnknownWord, word: "'#{uw}' is an unknown word"
     end
 
     |> case do
@@ -131,7 +133,7 @@ defmodule Forth do
 
   defp what_is_input?(input, evaluator) do
     cond do
-      input == ":" ->
+      input == @definition_start ->
         {:start_word_definition, input}
       
       Map.has_key?(evaluator, input) -> 
@@ -164,10 +166,10 @@ defmodule Forth do
     
     |> case do
       {:integer_number, _} -> 
-        raise Forth.InvalidWord, message: "cannot redefine a number"
+        raise Forth.InvalidWord, word: "cannot redefine a number"
 
       {:start_word_definition, _} ->
-        raise Forth.InvalidWord, message: "malformed definition"
+        raise Forth.InvalidWord, word: "malformed definition"
 
       {_, word} ->
         do_handle_new_definition(word, definition_inputs, e)
@@ -183,11 +185,11 @@ defmodule Forth do
   defp do_handle_new_definition(word, word_inputs, evaluator, fs_acc \\ [])
   # error cases
   defp do_handle_new_definition(_word, [], _e, _fs_acc), 
-    do: raise Forth.InvalidWord, message: "definition missing ';'"
+    do: raise Forth.InvalidWord, word: "definition missing '#{@definition_end}'"
   defp do_handle_new_definition(word, [word | _word_inputs], _e, _fs_acc), 
-    do: raise Forth.InvalidWord, message: "cannot define '#{word}' with '#{word}'"
+    do: raise Forth.InvalidWord, word: "cannot define '#{word}' with '#{word}'"
   # success case
-  defp do_handle_new_definition(_word, [";" | rem_inputs], _e, fs_acc) do
+  defp do_handle_new_definition(_word, [@definition_end | rem_inputs], _e, fs_acc) do
     fs = fs_acc |> Enum.reverse
     
     {:ok, fs, rem_inputs}
@@ -203,7 +205,7 @@ defmodule Forth do
       {:integer_number, i} ->
         do_handle_new_definition(word, word_inputs, e, [i | fs_acc])
 
-      {_, w} -> raise Forth.InvalidWord, message: "cannot use #{w} in definition"
+      {_, w} -> raise Forth.InvalidWord, word: "cannot use #{w} in definition"
     end
   end
   
