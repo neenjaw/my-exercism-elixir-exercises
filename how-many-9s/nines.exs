@@ -1,4 +1,5 @@
 defmodule Nines do
+    # iterative counting method O(n * m)
     def count_nines(max) do
         1..max
         |> Stream.map(&count_nines_in_number(&1))
