@@ -96,7 +96,7 @@ defmodule ISBNVerifier do
 
   @doc """
     Takes a string representation of the ISBN-13 without dashes and returns
-    whether the ISBN-13 is valid based on the check digit
+    whether the ISBN-13 is valid based on the check digit calculation
   """
   @spec check_isbn_13_digits(String.t()) :: boolean
   def check_isbn_13_digits(s) when is_binary(s), do: s |> String.graphemes() |> do_check_isbn_13_digits()
