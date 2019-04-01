@@ -1,15 +1,21 @@
 ListOpsTest
-  * test LB - reverse of huge list (136.2ms)
-  * test LT - reverse of huge list (140.1ms)
-  * test LB - filter of huge list (138.2ms)
-  * test LT - filter of huge list (155.8ms)
-  * test LB - append of huge lists (271.9ms)
-  * test LT - append of huge lists (268.0ms)
-  * test LB - map of huge list (164.3ms)
-  * test LT - map of huge list (150.7ms)
-  * test LB - reduce of huge list (107.6ms)
-  * test LT - reduce of huge list (99.7ms)
-  * test LB - concat of huge list of small lists (199.2ms)
-  * test LT - concat of huge list of small lists (203.5ms)
-  * test LB - concat of small list of huge lists (113.9ms)
-  * test LT - concat of small list of huge lists (148.4ms)
+  * test Body-call - reverse of huge list               (136.2ms)
+  * test Tail-call - reverse of huge list               (140.1ms)
+
+  * test Body-call - filter of huge list                (138.2ms)
+  * test Tail-call - filter of huge list                (155.8ms)
+
+  * test Body-call - append of huge lists               (271.9ms)
+  * test Tail-call - append of huge lists               (268.0ms)
+
+  * test Body-call - map of huge list                   (164.3ms)
+  * test Tail-call - map of huge list                   (150.7ms)
+
+  * test Body-call - reduce of huge list                (107.6ms)
+  * test Tail-call - reduce of huge list                (99.7ms)
+
+  * test Body-call - concat of huge list of small lists (199.2ms)
+  * test Tail-call - concat of huge list of small lists (203.5ms)
+
+  * test Body-call - concat of small list of huge lists (113.9ms)
+  * test Tail-call - concat of small list of huge lists (148.4ms)

@@ -85,7 +85,7 @@ defmodule ListOpsTest do
     assert LB.concat(Enum.map(1..1_000_000, &[&1])) == Enum.to_list(1..1_000_000)
   end
 
-  # @tag :pending
+  # @tag :pendingeli
   test "LB - concat of small list of huge lists" do
     assert LB.concat(Enum.map(0..9, &Enum.to_list((&1 * 100_000 + 1)..((&1 + 1) * 100_000)))) ==
              Enum.to_list(1..1_000_000)
