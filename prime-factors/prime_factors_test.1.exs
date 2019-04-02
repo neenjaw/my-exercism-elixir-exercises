@@ -1,9 +1,9 @@
 if !System.get_env("EXERCISM_TEST_EXAMPLES") do
-  Code.load_file("prime_factors.exs", __DIR__)
+  Code.load_file("prime_factors.1.exs", __DIR__)
 end
 
 ExUnit.start()
-ExUnit.configure(trace: true)
+ExUnit.configure(exclude: :pending, trace: true)
 
 defmodule PrimeFactorsTest do
   use ExUnit.Case
