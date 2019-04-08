@@ -15,28 +15,28 @@ defmodule SimpleCipherTest do
     assert SimpleCipher.encode("c", "a") == "c"
   end
 
-  @tag :pending
+  # @tag :pending
   test "encoding with another key returns shifted text" do
     assert SimpleCipher.encode("a", "d") == "d"
     assert SimpleCipher.encode("b", "d") == "e"
     assert SimpleCipher.encode("c", "d") == "f"
   end
 
-  @tag :pending
+  # @tag :pending
   test "decoding with 'a' returns the original text" do
     assert SimpleCipher.decode("a", "a") == "a"
     assert SimpleCipher.decode("b", "a") == "b"
     assert SimpleCipher.decode("c", "a") == "c"
   end
 
-  @tag :pending
+  # @tag :pending
   test "decoding with another key returns unshifted text" do
     assert SimpleCipher.decode("d", "d") == "a"
     assert SimpleCipher.decode("e", "d") == "b"
     assert SimpleCipher.decode("f", "d") == "c"
   end
 
-  @tag :pending
+  # @tag :pending
   test "key uses per-letter translation for encoding" do
     key = "abc"
 
@@ -46,7 +46,7 @@ defmodule SimpleCipherTest do
     assert SimpleCipher.encode("iamapandabear", "dddddddddddddd") == "ldpdsdqgdehdu"
   end
 
-  @tag :pending
+  # @tag :pending
   test "key uses per-letter translation for decoding" do
     key = "abc"
 
@@ -56,19 +56,19 @@ defmodule SimpleCipherTest do
     assert SimpleCipher.decode("ldpdsdqgdehdu", "dddddddddddddd") == "iamapandabear"
   end
 
-  @tag :pending
+  # @tag :pending
   test "only lowercase a-z are translated, rest are passed through" do
     assert SimpleCipher.encode("this is a test!", "d") == "wklv lv d whvw!"
     assert SimpleCipher.decode("wklv lv d whvw!", "d") == "this is a test!"
   end
 
-  @tag :pending
+  # @tag :pending
   test "if key is shorter than text, repeat key" do
     assert SimpleCipher.encode("abc", "a") == "abc"
     assert SimpleCipher.encode("abcdefghi", "abc") == "acedfhgik"
   end
 
-  @tag :pending
+  # @tag :pending
   test "if key is longer than text, only use as much as needed" do
     key = "somewhatlongkey"
 
@@ -76,7 +76,7 @@ defmodule SimpleCipherTest do
     assert SimpleCipher.decode("abc", key) == "inq"
   end
 
-  @tag :pending
+  # @tag :pending
   test "if you know both the encoded and decoded text, you can figure out the key" do
     key = "supersecretkey"
 
