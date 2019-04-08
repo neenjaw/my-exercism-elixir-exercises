@@ -10,7 +10,7 @@ defmodule Say do
     ]
 
   defguardp in_range(n) 
-    when n >= 0 
+    when n > 0 
     and n < @one_trillion
   
 
