@@ -69,7 +69,7 @@ defmodule RailFenceCipher do
       |> Enum.scan({0, 0}, fn slice_length, {_, slice_start} -> {slice_start, (slice_start + slice_length)} end)
       |> Enum.map(fn {slice_start, slice_end} -> String.slice(str, slice_start, slice_end) |> String.graphemes() end)
       |> Enum.reduce({1, %{}}, fn row, {row_index, row_map} -> {row_index + 1, Map.put(row_map, row_index, row)} end)
-      |> elem(1)
+      |> (fn {_, x} -> x end).()
 
     # Using the previously created sequence stream, take a sequence of length equal to the encoded message,
     #   then reduce to the message and then join it.
@@ -77,7 +77,7 @@ defmodule RailFenceCipher do
     |> Stream.take(encoded_length)
     |> Enum.to_list()
     |> Enum.reduce({encoded_row_map, []}, &decode_message/2)
-    |> elem(1)
+    |> (fn {_, x} -> x end).()
     |> Enum.reverse()
     |> Enum.join()
   end
