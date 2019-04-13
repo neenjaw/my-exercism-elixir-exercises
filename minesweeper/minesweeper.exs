@@ -1,6 +1,7 @@
 defmodule Minesweeper do
   @mine_char ?*
   @annotate_char ?\s
+  @lookaround_adjusts [{-1,-1}, {-1,0}, {-1,1}, {0,1}, {1,1}, {1,0}, {1,-1}, {0,-1}]
 
   @doc """
   Annotate empty spots next to mines with the number of mines next to them.
@@ -95,18 +96,20 @@ defmodule Minesweeper do
   @doc """
   Builds a list of positions that look around the submitted position
   """
-  def get_lookaround(position, current \\ :up_left, coordinates \\ [])
+  def get_lookaround({row, column}), do: Enum.map(@lookaround_adjusts, fn {x, y} -> {row+x, column+y} end)
 
-  def get_lookaround(_position, :end, coordinates), do: coordinates
+  # def get_lookaround(position, current \\ :up_left, coordinates \\ [])
 
-  def get_lookaround({r,c}, :up_left,    coordinates), do: get_lookaround({r,c}, :up,         [{r-1, c-1} | coordinates])
-  def get_lookaround({r,c}, :up,         coordinates), do: get_lookaround({r,c}, :up_right,   [{r-1, c}   | coordinates])
-  def get_lookaround({r,c}, :up_right,   coordinates), do: get_lookaround({r,c}, :right,      [{r-1, c+1} | coordinates])
-  def get_lookaround({r,c}, :right,      coordinates), do: get_lookaround({r,c}, :down_right, [{r,   c+1} | coordinates])
-  def get_lookaround({r,c}, :down_right, coordinates), do: get_lookaround({r,c}, :down,       [{r+1, c+1} | coordinates])
-  def get_lookaround({r,c}, :down,       coordinates), do: get_lookaround({r,c}, :down_left,  [{r+1, c}   | coordinates])
-  def get_lookaround({r,c}, :down_left,  coordinates), do: get_lookaround({r,c}, :left,       [{r+1, c-1} | coordinates])
-  def get_lookaround({r,c}, :left,       coordinates), do: get_lookaround({r,c}, :end,        [{r,   c-1} | coordinates])
+  # def get_lookaround(_position, :end, coordinates), do: coordinates
+
+  # def get_lookaround({r,c}, :up_left,    coordinates), do: get_lookaround({r,c}, :up,         [{r-1, c-1} | coordinates])
+  # def get_lookaround({r,c}, :up,         coordinates), do: get_lookaround({r,c}, :up_right,   [{r-1, c}   | coordinates])
+  # def get_lookaround({r,c}, :up_right,   coordinates), do: get_lookaround({r,c}, :right,      [{r-1, c+1} | coordinates])
+  # def get_lookaround({r,c}, :right,      coordinates), do: get_lookaround({r,c}, :down_right, [{r,   c+1} | coordinates])
+  # def get_lookaround({r,c}, :down_right, coordinates), do: get_lookaround({r,c}, :down,       [{r+1, c+1} | coordinates])
+  # def get_lookaround({r,c}, :down,       coordinates), do: get_lookaround({r,c}, :down_left,  [{r+1, c}   | coordinates])
+  # def get_lookaround({r,c}, :down_left,  coordinates), do: get_lookaround({r,c}, :left,       [{r+1, c-1} | coordinates])
+  # def get_lookaround({r,c}, :left,       coordinates), do: get_lookaround({r,c}, :end,        [{r,   c-1} | coordinates])
 
   @doc """
   Check if the position is within the bounds of the board
