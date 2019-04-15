@@ -26,19 +26,19 @@ defmodule ConnectTest do
     assert Connect.result_for(board) == :none
   end
 
-  @tag :pending
+  # @tag :pending
   test "1x1 board with black stone" do
     board = ["X"]
     assert Connect.result_for(board) == :black
   end
 
-  @tag :pending
+  # @tag :pending
   test "1x1 board with white stone" do
     board = ["O"]
     assert Connect.result_for(board) == :white
   end
 
-  @tag :pending
+  # @tag :pending
   test "convulted path" do
     board =
       remove_spaces([
@@ -52,7 +52,7 @@ defmodule ConnectTest do
     assert Connect.result_for(board) == :black
   end
 
-  @tag :pending
+  # @tag :pending
   test "rectangle, black wins" do
     board =
       remove_spaces([
@@ -66,7 +66,7 @@ defmodule ConnectTest do
     assert Connect.result_for(board) == :black
   end
 
-  @tag :pending
+  # @tag :pending
   test "rectangle, white wins" do
     board =
       remove_spaces([
@@ -80,7 +80,7 @@ defmodule ConnectTest do
     assert Connect.result_for(board) == :white
   end
 
-  @tag :pending
+  # @tag :pending
   test "spiral, black wins" do
     board = [
       "OXXXXXXXX",
@@ -97,7 +97,7 @@ defmodule ConnectTest do
     assert Connect.result_for(board) == :black
   end
 
-  @tag :pending
+  # @tag :pending
   test "spiral, nobody wins" do
     board = [
       "OXXXXXXXX",
