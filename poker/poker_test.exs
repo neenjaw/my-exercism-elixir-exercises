@@ -8,7 +8,7 @@ ExUnit.configure(exclude: :pending, trace: true)
 defmodule PokerTest do
   use ExUnit.Case
 
-  # @tag :pending
+  @tag :pending
   test "single hand always wins" do
     high_of_jack = ~w(4S 5S 7H 8D JC)
     assert Poker.best_hand([high_of_jack]) == [high_of_jack]
@@ -22,7 +22,7 @@ defmodule PokerTest do
     assert Poker.best_hand([high_of_8, high_of_10, high_of_jack]) == [high_of_jack]
   end
 
-  @tag :pending
+  # @tag :pending
   test "a tie has multiple winners" do
     high_of_8 = ~w(4D 5S 6S 8D 3C)
     high_of_10 = ~w(2S 4C 7S 9H 10H)

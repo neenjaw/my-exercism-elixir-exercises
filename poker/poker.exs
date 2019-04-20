@@ -97,12 +97,13 @@ defmodule Poker do
   """
   @spec best_hand(list(list(String.t()))) :: list(list(String.t()))
   def best_hand(hands) do
-    highest_hand =
+    highest_hands =
       hands
       |> analyse_hands()
       |> compare_hands()
 
-    [highest_hand.card_list]
+    highest_hands
+    |> Enum.map(fn hand -> hand.card_list end)
   end
 
   def analyse_hands(hands, results \\ [])
@@ -189,13 +190,8 @@ defmodule Poker do
     :high_card           #
   ]
 
-  defp compare_hands(hands, best_hands \\ nil)
-  defp compare_hands([], best_hands), do: best_hands
-  defp compare_hands([hand | hands], nil), do: compare_hands(hands, [hand])
-  defp compare_hands([hand | hands], best_hands) do
-    hands_to_compare =
-      [hand | best_hands]
-
+  defp compare_hands([hand]), do: [hand]
+  defp compare_hands(hands) do
     # Find the highest category of hand by using `Enum.find` to return the first
     # element of the @ordered_list_of_hands that is present in the hands.
     # Because a straight flush is a combination of attributes, the code compares
@@ -205,19 +201,20 @@ defmodule Poker do
       |> Enum.find(fn
         # If any hand has all of the attributes, then this is the highest type of hand
         attributes when is_list(attributes) ->
-          Enum.any?(hands_to_compare, fn hand ->
+          Enum.any?(hands, fn hand ->
             Enum.all?(attributes, fn c -> c in hand.attributes end)
           end)
 
         # If any hand has the attribute, then we have found
         attribute ->
-          Enum.any?(hands_to_compare, fn hand -> attribute in hand.attributes end)
+          Enum.any?(hands, fn hand -> attribute in hand.attributes end)
       end)
 
     # Now filter the hands based on the highest type.  If only one hand remains, we have
     # found the best hand.  If more than one, need to break the tie if possible.
-    new_best_hand =
-      hands_to_compare
+    best_hands =
+      hands
+      # |> IO.inspect(label: "original")
       |> Enum.filter(fn hand ->
         case highest_hand_type do
           attributes when is_list(attributes) ->
@@ -228,12 +225,12 @@ defmodule Poker do
             attribute in hand.attributes
         end
       end)
+      # |> IO.inspect(label: "pre_break")
       |> (fn
-        hands when length(hands) == 1 -> List.hands
-        hands when length(hands) >= 2 -> break_tie(hands, highest_hand_type)
+        [hand] -> [hand]
+        hands -> break_tie(hands, highest_hand_type)
       end).()
-
-    compare_hands(hands, new_best_hand)
+      # |> IO.inspect(label: "post_break")
   end
 
   def break_tie(hands, category) when is_list(hands) and length(hands) > 1 do
@@ -244,37 +241,46 @@ defmodule Poker do
   def do_break_tie(hands, :flush),              do: do_break_tie(hands, :high_card)
   def do_break_tie(hands, :straight),           do: do_break_tie(hands, :high_card)
   def do_break_tie(hands, :high_card) do
-    hands
-    |> Enum.with_index()
-    |> Enum.map(fn {hand, index} ->
-      # create a list of the cards in the hand,
-      # ordered by decreasing value
-      hand.value_map
-      |> Map.to_list
-      |> Enum.filter(fn
-          {value, 0}   -> false
-          _value_count -> true
+    high_card_tuples =
+      hands
+      |> Enum.with_index()
+      |> Enum.map(fn {hand, index} ->
+        # create a list of the cards in the hand,
+        # ordered by decreasing value
+        hand.value_map
+        |> Map.to_list
+        |> Enum.filter(fn
+            {value, 0}   -> false
+            _value_count -> true
+        end)
+        |> Enum.sort(&(&1 >= &2))
+        |> Enum.map(fn {v,c} -> {v, index} end)
       end)
-      |> Enum.sort(&(&1 >= &2))
-      |> Enum.map(fn {v,c} -> {v, index} end)
-    end)
-    |> Enum.zip()
-    |> Enum.find(:tie, fn tuple ->
-      # Find the card that isnt a match, by taking the list of cards,
-      # then removing duplicate values, if the resultant list is the
-      # same before duplciates removed, it must contain a tie breaker card
-      # if all cards match (ie, no element found), there is a tie
+      |> Enum.zip()
 
-      original =
-        tuple
-        |> Tuple.to_list()
+    max_high_card_value =
+      high_card_tuples
+      |> List.first
+      |> Tuple.to_list()
+      |> Enum.max_by(fn {v, _index} -> v end)
+      |> Kernel.elem(0)
+      |> IO.inspect(label: "267")
 
-      no_duplicates =
-        original
-        |> Enum.uniq_by(fn {v, index} -> v end)
+    max_high_card_hands =
+      high_card_tuples
+      |> List.first()
+      |> Tuple.to_list()
+      |> Enum.filter(fn {v, _index} -> v == max_high_card_value end)
+      |> IO.inspect(label: "275")
 
-      original == no_duplicates
-    end)
+    # TODO: THIS IS MESSED
+    case max_high_card_hands do
+      [{_, index}] -> [Enum.at(hands, index)]
+
+      hands ->
+    end
+
+    |> (fn _ -> raise ErlangError end).()
     |> case do
       # If there is a tie, return the hands
       :tie -> hands
@@ -313,79 +319,151 @@ defmodule Poker do
     # Create a tuple with the value of the four-of-a-kind, the index of the hand,
     # and the hand with the remaining 1 card in the value map if needed to compare
     # to break a tie
-    four_of_a_kinds =
-      hands
-      |> Enum.with_index()
-      |> Enum.map(fn {hand, index} ->
-        value_list = Map.to_list(hand.value_map)
+    separated_hands =
+      separate_kind_from_remainder_cards(hands, 4)
 
-        four_of_a_kind_value =
-          value_list
-          |> Enum.find(fn {_v, c} -> c == 4 end)
-          |> (fn {v, 4} -> v end).()
+    four_of_a_kind_max =
+      find_kind_max_value(separated_hands)
 
-        remaining_cards_value_map =
-          value_list
-          |> Enum.find(fn {_v, c} -> c == 1 end)
-          |> (fn c -> Map.new([c]) end).()
+    best_hands =
+      find_all_hands_with_max_value(separated_hands, four_of_a_kind_max)
 
-        {four_of_a_kind_value, index, %{hand | value_map: remaining_cards_value_map}}
-      end)
-
-    # Get the max four-of-a-kind
-    max_four_value =
-      four_of_a_kinds
-      |> Enum.max_by(fn {v, _index, _hand} -> v end)
-      |> elem(0)
-
-    # Find all the hands with the max
-    high_hands =
-      four_of_a_kinds
-      |> Enum.filter(fn {v, _index, _hand} -> v == max_four_value end)
-
-    case high_hands do
-      # If only one hand
-      [{_, index, _hand}] ->
-        [Enum.at(hands, index)]
-
-      # If multiple hands, break the tie by the high remaining card
-      high_hands ->
-        break_tie_hands =
-          high_hands
-          |> Enum.map(fn {_, _, h} -> h end)
-          |> do_break_tie(:high_card)
-
-        # Once the tie breaker hands found, get the value of the tie-breaking card
-        tie_breaker_value =
-          break_tie_hands
-          |> List.first()
-          |> (fn hand -> hand.value_map end).()
-          |> Map.to_list()
-          |> List.first()
-          |> (fn {v, 1} -> v end).()
-
-        # Use the value of the tie breaking card to get the indexes of the hands to return
-        high_hands
-        |> Enum.filter(fn {_, _, hand} -> hand.value_map[tie_breaker_value] == 1 end)
-        |> Enum.map(fn {_, index, _hand} -> Enum.at(hands, index) end)
-    end
-  end
-
-  def do_break_tie(hands, :full_house) do
-
+    handle_remainder(hands, best_hands)
   end
 
   def do_break_tie(hands, :three_of_a_kind) do
+    # Create a tuple with the value of the three-of-a-kind, the index of the hand,
+    # and the hand with the remaining 1 card in the value map if needed to compare
+    # to break a tie
 
-  end
+    separated_hands =
+      separate_kind_from_remainder_cards(hands, 3)
 
-  def do_break_tie(hands, :two_pair) do
+    three_of_a_kind_max =
+      find_kind_max_value(separated_hands)
 
+    best_hands =
+      find_all_hands_with_max_value(separated_hands, three_of_a_kind_max)
+
+    handle_remainder(hands, best_hands)
   end
 
   def do_break_tie(hands, :one_pair) do
+    # Create a tuple with the value of the two-of-a-kind (pair), the index of the hand,
+    # and the hand with the remaining 1 card in the value map if needed to compare
+    # to break a tie
+    separated_hands =
+      separate_kind_from_remainder_cards(hands, 2)
 
+    pair_max =
+      find_kind_max_value(separated_hands)
+
+    best_hands =
+      find_all_hands_with_max_value(separated_hands, pair_max)
+
+    handle_remainder(hands, best_hands)
   end
 
+  def do_break_tie(hands, :full_house) do
+    full_house_tuples =
+      hands
+      |> Enum.with_index()
+      |> Enum.map(fn {hand, index} ->
+        hand.value_map
+        |> Map.to_list()
+        |> Enum.filter(fn {_v, c} -> (c == 3) or (c == 2) end)
+        |> Enum.sort(fn {_v1, c1}, {_v2, c2} -> c1 >= c2 end)
+        |> (fn [{v1, 3}, {v2, 2}] -> {index, {v1, v2}} end).()
+      end)
+      |> Enum.sort(fn {_i1, v1}, {_i2, v2} -> v1 >= v2 end)
+
+    full_house_max_tuples =
+      full_house_tuples
+      |> Enum.filter(fn {_i, v} ->
+        {_, highest_v} = List.first(full_house_tuples)
+
+        v == highest_v
+      end)
+      |> Enum.map(fn {i, _} -> Enum.at(hands, i) end)
+  end
+
+  def do_break_tie(hands, :two_pair) do
+    two_pair_tuples =
+      hands
+      |> Enum.with_index()
+      |> Enum.map(fn {hand, index} ->
+        hand.value_map
+        |> Map.to_list()
+        |> Enum.filter(fn {_v, c} -> (c == 2) or (c == 1) end)
+        |> Enum.sort(fn
+          { v1,  2}, { v2,  2} -> v1 >= v2
+          {_v1, c1}, {_v2, c2} -> c1 >= c2
+        end)
+        |> (fn [{v1, 2}, {v2, 2}, {v3, 1}] -> {index, {v1, v2, v3}} end).()
+      end)
+      |> Enum.sort(fn {_i1, v1}, {_i2, v2} -> v1 >= v2 end)
+
+    two_pair_max_tuples =
+      two_pair_tuples
+      |> Enum.filter(fn {_i, v} ->
+        {_, highest_v} = List.first(two_pair_tuples)
+
+        v == highest_v
+      end)
+      |> Enum.map(fn {i, _} -> Enum.at(hands, i) end)
+  end
+
+  def separate_kind_from_remainder_cards(hands, x) do
+    hands
+    |> Enum.with_index()
+    |> Enum.map(fn {hand, index} ->
+      value_list = Map.to_list(hand.value_map)
+
+      x_of_a_kind_value =
+        value_list
+        |> Enum.find(fn {_v, c} -> c == x end)
+        |> (fn {v, ^x} -> v end).()
+
+      remaining_cards_value_map =
+        value_list
+        |> Enum.filter(fn {_v, c} -> ((c != x) or (c != 0)) end)
+        |> Map.new
+
+      {x_of_a_kind_value, index, %{hand | value_map: remaining_cards_value_map}}
+    end)
+  end
+
+  def find_kind_max_value(separated_hands) do
+    # Get the max four-of-a-kind
+    separated_hands
+    |> Enum.max_by(fn {v, _index, _hand} -> v end)
+    |> elem(0)
+  end
+
+  def find_all_hands_with_max_value(separated_hands, max) do
+    Enum.filter(separated_hands, fn {v, _index, _hand} -> v == max end)
+  end
+
+  def handle_remainder(hands, [{_v, index, _hand}]), do: [Enum.at(hands, index)]
+  def handle_remainder(hands, high_hands) do
+    break_tie_hands =
+      high_hands
+      |> Enum.map(fn {_, _, h} -> h end)
+      |> do_break_tie(:high_card)
+
+    # Once the tie breaker hands found, get the value of the tie-breaking card
+    tie_breaker_value =
+      break_tie_hands
+      |> List.first()
+      |> (fn hand -> hand.value_map end).()
+      |> Map.to_list()
+      |> List.first()
+      |> (fn {v, 1} -> v end).()
+
+    # Use the value of the tie breaking card to get the indexes of the hands to return
+    high_hands
+    |> Enum.filter(fn {_, _, hand} -> hand.value_map[tie_breaker_value] == 1 end)
+    |> Enum.map(fn {_, index, _hand} -> Enum.at(hands, index) end)
+  end
 
 end
