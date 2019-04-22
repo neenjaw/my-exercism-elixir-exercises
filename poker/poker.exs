@@ -88,9 +88,16 @@ defmodule Poker do
     defp increment_card_count(hand, amount \\ 1), do: update_in(hand.card_count, &(&1 + amount))
   end
 
-  defguardp is_sequence(a,b,c,d,e)
-    when (a == 14 and b == 2 and c == 3 and d == 4 and e == 5)
-    or (b == a+1 and c == b+1 and d == c+1 and e ==d+1)
+
+  defguard is_regular_sequence(a,b,c,d,e)
+    when (b == a+1 and c == b+1 and d == c+1 and e ==d+1)
+
+  defguard is_low_ace_sequence(a,b,c,d,e)
+    when (a == 2 and b == 3 and c == 4 and d == 5 and e == 14)
+    or (a == 14 and b == 2 and c == 3 and d == 4 and e == 5)
+
+  defguard is_sequence(a,b,c,d,e)
+    when is_regular_sequence(a,b,c,d,e) or is_low_ace_sequence(a,b,c,d,e)
 
   @doc """
   Score and rank the hands, returning the highest hand
@@ -104,6 +111,7 @@ defmodule Poker do
 
     highest_hands
     |> Enum.map(fn hand -> hand.card_list end)
+    |> Enum.reverse()
   end
 
   def analyse_hands(hands, results \\ [])
@@ -239,7 +247,28 @@ defmodule Poker do
 
   def do_break_tie(hands, [:straight, :flush]), do: do_break_tie(hands, :high_card)
   def do_break_tie(hands, :flush),              do: do_break_tie(hands, :high_card)
-  def do_break_tie(hands, :straight),           do: do_break_tie(hands, :high_card)
+  def do_break_tie(hands, :straight) do
+    hands
+    |> Enum.map(fn hand ->
+      value_series =
+        hand.value_map
+        |> Map.to_list()
+        |> Enum.filter_map(fn {_v, c} -> c > 0 end, fn {v, _c} -> v end)
+        |> Enum.sort()
+
+      if value_series == [2,3,4,5,14] do
+        value_map =
+          hand.value_map
+          |> Map.delete(14)
+          |> Map.put(1, 1)
+
+        %{hand | value_map: value_map}
+      else
+        hand
+      end
+    end)
+    |> do_break_tie(:high_card)
+  end
   def do_break_tie(hands, :high_card) do
     high_card_tuples =
       hands
@@ -258,61 +287,8 @@ defmodule Poker do
       end)
       |> Enum.zip()
 
-    max_high_card_value =
-      high_card_tuples
-      |> List.first
-      |> Tuple.to_list()
-      |> Enum.max_by(fn {v, _index} -> v end)
-      |> Kernel.elem(0)
-      |> IO.inspect(label: "267")
-
-    max_high_card_hands =
-      high_card_tuples
-      |> List.first()
-      |> Tuple.to_list()
-      |> Enum.filter(fn {v, _index} -> v == max_high_card_value end)
-      |> IO.inspect(label: "275")
-
-    # TODO: THIS IS MESSED
-    case max_high_card_hands do
-      [{_, index}] -> [Enum.at(hands, index)]
-
-      hands ->
-    end
-
-    |> (fn _ -> raise ErlangError end).()
-    |> case do
-      # If there is a tie, return the hands
-      :tie -> hands
-
-      # If there is a card that breaks the tie
-      tie_breaker_card ->
-        max_value =
-          tie_breaker_card
-          |> Tuple.to_list()
-          |> Enum.map(fn {v, _} -> v end)
-          |> Enum.max()
-
-        # find the hands that contain the card that breaks the tie
-        max_hands =
-          tie_breaker_card
-          |> Tuple.to_list()
-          |> Enum.filter(fn
-            {^max_value, _} -> true
-            _not_max_value  -> false
-          end)
-          |> case do
-            # If only one hand, then done
-            [{_v, index}] ->
-              [Enum.at(hands, index)]
-
-            # If there are more than one hand, check those hands for a subsequent tie
-            max_hands ->
-              max_hands
-              |> Enum.map(fn {_v, index} -> Enum.at(hands, index) end)
-              |> do_break_tie(:high_card)
-          end
-    end
+    do_filter_to_winner(high_card_tuples)
+    |> Enum.map(fn index -> Enum.at(hands, index) end)
   end
 
   def do_break_tie(hands, :four_of_a_kind) do
@@ -413,6 +389,51 @@ defmodule Poker do
       |> Enum.map(fn {i, _} -> Enum.at(hands, i) end)
   end
 
+  def do_filter_to_winner(high_card_tuples) do
+
+    max_high_card_value =
+      high_card_tuples
+      |> List.first
+      |> Tuple.to_list()
+      |> Enum.max_by(fn {v, _index} -> v end)
+      |> Kernel.elem(0)
+      # |> IO.inspect(label: "max high card")
+
+    max_high_card_hands =
+      high_card_tuples
+      |> List.first()
+      |> Tuple.to_list()
+      |> Enum.filter(fn {v, _index} -> v == max_high_card_value end)
+      # |> IO.inspect(label: "high card hands")
+
+    case max_high_card_hands do
+      [{_, index}] -> [index]
+
+      winners ->
+        winner_indexes =
+          winners
+          |> Enum.map(fn {_, index} -> index end)
+
+        high_card_tuples
+        |> Enum.drop(1)
+        |> case  do
+          [] -> winner_indexes
+
+          remaining_cards ->
+            remaining_cards
+            |> Enum.map(fn next_high_cards ->
+              next_high_cards
+              |> Tuple.to_list()
+              |> Enum.filter(fn {_, index} -> index in winner_indexes end)
+              |> List.to_tuple()
+            end)
+
+            # Take the remaining cards, and see if there is a further winner
+            |> do_filter_to_winner()
+        end
+    end
+  end
+
   def separate_kind_from_remainder_cards(hands, x) do
     hands
     |> Enum.with_index()
@@ -424,12 +445,12 @@ defmodule Poker do
         |> Enum.find(fn {_v, c} -> c == x end)
         |> (fn {v, ^x} -> v end).()
 
-      remaining_cards_value_map =
+      value_map =
         value_list
         |> Enum.filter(fn {_v, c} -> ((c != x) or (c != 0)) end)
         |> Map.new
 
-      {x_of_a_kind_value, index, %{hand | value_map: remaining_cards_value_map}}
+      {x_of_a_kind_value, index, %{hand | value_map: value_map}}
     end)
   end
 
@@ -445,25 +466,9 @@ defmodule Poker do
   end
 
   def handle_remainder(hands, [{_v, index, _hand}]), do: [Enum.at(hands, index)]
-  def handle_remainder(hands, high_hands) do
-    break_tie_hands =
-      high_hands
-      |> Enum.map(fn {_, _, h} -> h end)
-      |> do_break_tie(:high_card)
-
-    # Once the tie breaker hands found, get the value of the tie-breaking card
-    tie_breaker_value =
-      break_tie_hands
-      |> List.first()
-      |> (fn hand -> hand.value_map end).()
-      |> Map.to_list()
-      |> List.first()
-      |> (fn {v, 1} -> v end).()
-
-    # Use the value of the tie breaking card to get the indexes of the hands to return
+  def handle_remainder(_hands, high_hands) do
     high_hands
-    |> Enum.filter(fn {_, _, hand} -> hand.value_map[tie_breaker_value] == 1 end)
-    |> Enum.map(fn {_, index, _hand} -> Enum.at(hands, index) end)
+    |> Enum.map(fn {_, _, h} -> h end)
+    |> do_break_tie(:high_card)
   end
-
 end
