@@ -1,5 +1,5 @@
 if !System.get_env("EXERCISM_TEST_EXAMPLES") do
-  Code.load_file("poker.exs", __DIR__)
+  Code.load_file("alt_1.exs", __DIR__)
 end
 
 ExUnit.start()
