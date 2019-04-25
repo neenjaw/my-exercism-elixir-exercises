@@ -1,4 +1,11 @@
 defmodule Dominoes.Pile do
+  @moduledoc """
+  A data structure which represents a pile of dominoes where any could be picked from
+  the 'pile'.  It is maintained by two maps that allow easy indexing for the pieces because
+  can be played both 'forward' and in 'reverse'.  Maps are used to facilite easy traversal with
+  map functions and Access protocols
+  """
+
   alias Dominoes.Pile, as: Pile
 
   defstruct domino_pile: %{},
@@ -14,7 +21,8 @@ defmodule Dominoes.Pile do
   @spec add_domino(Pile.t(), {integer, integer}) :: Pile.t()
   def add_domino(pile = %Pile{}, {a,b}) do
     pile = %{pile | domino_pile: add_to_domino_map(pile.domino_pile, {a,b})}
-    pile = %{pile | reversed_domino_pile: add_to_domino_map(pile.reversed_domino_pile, {b,a})}
+
+    %{pile | reversed_domino_pile: add_to_domino_map(pile.reversed_domino_pile, {b,a})}
   end
 
   defp add_to_domino_map(domino_map, {a,b}) do
@@ -75,7 +83,7 @@ defmodule Dominoes.Pile do
         options ->
           options
           |> Map.to_list()
-          |> Enum.filter(fn {b, c} -> c > 0 end)
+          |> Enum.filter(fn {_b, c} -> c > 0 end)
           |> Enum.map(fn {b, _c} -> {a,b} end)
       end
 
@@ -87,7 +95,7 @@ defmodule Dominoes.Pile do
         options ->
           options
           |> Map.to_list()
-          |> Enum.filter(fn {b, c} -> c > 0 end)
+          |> Enum.filter(fn {_b, c} -> c > 0 end)
           |> Enum.map(fn {b, _c} -> {a,b} end)
       end
 
@@ -144,27 +152,28 @@ defmodule Dominoes do
   """
   @spec chain?(dominoes :: [domino] | []) :: boolean
   def chain?(dominoes) do
-    # Add all the dominoes to the pile
-    pile =
-      Enum.reduce(dominoes, %Pile{}, fn d, pile -> Pile.add_domino(pile, d) end)
+    pile = Enum.reduce(dominoes, %Pile{}, fn d, pile -> Pile.add_domino(pile, d) end)
 
-    # Create the chain, starting with one of any piece
     starting_piece_options =
       pile
       |> Pile.next_piece_options()
       |> Map.keys()
-      |> IO.inspect(label: "starting pieces")
 
     start_chain(pile, starting_piece_options)
+    |> case do
+      {:ok_path, _} -> true
+      {:no_path}    -> false
+    end
   end
 
   @doc """
-
+  First step of the chain, select a starting piece, then recursively build the chain
+  with the ability to backtrack and make alternate choices for the domino pieces.
   """
   def start_chain(pile, options)
 
   def start_chain(pile, []) do
-    IO.inspect(binding(), label: "start_chain []")
+    # IO.inspect(binding(), label: "start_chain []")
 
     if Pile.is_empty?(pile) do
       {:ok_path, []}
@@ -173,8 +182,9 @@ defmodule Dominoes do
     end
   end
 
+
   def start_chain(pile, [option = {start, _} | options]) do
-    IO.inspect(binding(), label: "start_chain [h|t]")
+    # IO.inspect(binding(), label: "start_chain [h|t]")
 
     {:ok, next_pile, _} = Pile.select_from_pile(pile, option)
 
@@ -187,10 +197,11 @@ defmodule Dominoes do
   end
 
   @doc """
-
+  Find the second and subsequent pieces of the chain.  next_chain/3 collects the next pieces,
+  then delegates the testing of the next pieces to do_next_chain/4
   """
-  def next_chain(pile, chain = [last = {_, edge} | _], starting_edge) do
-    IO.inspect(binding(), label: "next_chain")
+  def next_chain(pile, chain = [_last = {_, edge} | _], starting_edge) do
+    # IO.inspect(binding(), label: "next_chain")
 
     next_piece_options =
       pile
@@ -198,7 +209,12 @@ defmodule Dominoes do
       |> Map.keys()
 
     case next_piece_options do
-      [] -> {:no_path}
+      [] ->
+        if Pile.is_empty?(pile) and edge == starting_edge do
+          {:ok_path, (chain |> Enum.reverse)}
+        else
+          {:no_path}
+        end
 
       options ->
         do_next_chain(pile, chain, options, starting_edge)
@@ -206,12 +222,13 @@ defmodule Dominoes do
   end
 
   def do_next_chain(_pile, _chain, [], _) do
-    IO.inspect(binding(), label: "do_next_chain []")
+    # IO.inspect(binding(), label: "do_next_chain []")
 
     {:no_path}
   end
+
   def do_next_chain(pile, chain, [domino | options], starting_edge) do
-    IO.inspect(binding(), label: "do_next_chain [h|t]")
+    # IO.inspect(binding(), label: "do_next_chain [h|t]")
 
     {:ok, next_pile, _} = Pile.select_from_pile(pile, domino)
 
