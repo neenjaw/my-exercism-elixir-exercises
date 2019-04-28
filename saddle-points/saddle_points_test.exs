@@ -67,4 +67,18 @@ defmodule SaddlePointsTest do
     saddle_points = SaddlePoints.saddle_points("4 5 4\n3 5 5\n1 5 4")
     assert saddle_points == [{0, 1}, {1, 1}, {2, 1}]
   end
+
+  test "multiple saddle points bigger" do
+    matrix =  """
+              4 3 5 1 2
+              -1 0 -2 0 -1
+              -4 1 4 3 5
+              -3 0 -1 0 -2
+              3 2 -7 3 8
+              """
+    matrix = String.trim_trailing(matrix)
+    saddle_points = SaddlePoints.saddle_points(matrix)
+
+    assert saddle_points == [{1, 1}, {1, 3}, {3, 1}, {3, 3}]
+  end
 end
