@@ -1,6 +1,6 @@
 defmodule FlattenArray do
   @doc """
-  Accept a list and return the list 
+  Accept a list and return the list
   flattened without nil values.
 
   ## Examples
@@ -17,12 +17,12 @@ defmodule FlattenArray do
   def flatten(list) do
     flatten(list, []) |> Enum.reverse
   end
-  
+
   defp flatten([], acc), do: acc
   defp flatten([nil|rest], acc), do: flatten(rest, acc)
   defp flatten([e|rest], acc) when is_list(e) do
-    acc_child = flatten(e,acc)
-    flatten(rest, acc_child)
+    sublist_acc = flatten(e,acc)
+    flatten(rest, sublist_acc)
   end
   defp flatten([e|rest], acc), do: flatten(rest, [e|acc])
 end
