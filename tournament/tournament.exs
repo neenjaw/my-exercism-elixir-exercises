@@ -95,8 +95,7 @@ defmodule Tournament do
   @stat_char_width 2
 
   defp format_tally(teams) do
-    [~w(Team MP W D L P) | team_maps_to_list(teams)]
-    |> format_output
+    format_output([~w(Team MP W D L P) | team_maps_to_list(teams)])
   end
 
   defp team_maps_to_list(teams) do
