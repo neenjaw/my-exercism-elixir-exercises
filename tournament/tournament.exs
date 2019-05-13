@@ -1,5 +1,5 @@
 defmodule Tournament do
-  
+
   defmodule Team do
     @enforce_keys [:name]
     defstruct name: nil,
@@ -20,7 +20,7 @@ defmodule Tournament do
   end
 
   @valid_outcomes ["win", "loss", "draw"]
-  
+
   @doc """
   Given `input` lines representing two teams and whether the first of them won,
   lost, or reached a draw, separated by semicolons, calculate the statistics
@@ -35,18 +35,19 @@ defmodule Tournament do
   @spec tally(input :: list(String.t())) :: String.t()
   def tally(input) do
     # Create a stream function for the input which splits each line, then filters out invalid input
-    stream = input
-    |> Stream.map(&String.split(&1, ";", trim: true))
-    |> Stream.filter(fn split_line -> length(split_line) == 3 end)
-    |> Stream.filter(fn [_home, _away, outcome] -> outcome in @valid_outcomes end)
+    inputs = input
+      |> Stream.map(&String.split(&1, ";", trim: true))
+      |> Stream.filter(fn split_line -> length(split_line) == 3 end)
+      |> Stream.filter(fn [_home, _away, outcome] -> outcome in @valid_outcomes end)
+      |> Enum.to_list()
 
     # Take stream into list, then reduce it to a map to tally scores
-    Enum.to_list(stream)
+    inputs
     |> Enum.reduce(%{}, &record_reducer(&1, &2))
     |> Map.values()
-    |> Enum.sort(fn team_a, team_b -> 
+    |> Enum.sort(fn team_a, team_b ->
       # Sorts team a before team b:
-      #   1) by decreasing points 
+      #   1) by decreasing points
       #   2) by increasing lexical order
       cond do
         team_a.points > team_b.points -> true
@@ -60,7 +61,10 @@ defmodule Tournament do
   end
 
   defp record_reducer([home, away, outcome], record_map) do
-    add_record(record_map, home, outcome) |> add_record(away, get_away_outcome(outcome))
+    # home team record update
+    record_map = add_record(record_map, home, outcome)
+    # away team record update
+    add_record(record_map, away, get_away_outcome(outcome))
   end
 
   defp get_away_outcome("win"), do: "loss"
@@ -68,7 +72,7 @@ defmodule Tournament do
   defp get_away_outcome("draw"), do: "draw"
 
   defp add_record(record_map, team, outcome) do
-    team_record = Map.get(record_map, team, %Team{name: team})    
+    team_record = Map.get(record_map, team, %Team{name: team})
 
     updated_team_record = update_team(team_record, outcome)
 
@@ -76,50 +80,37 @@ defmodule Tournament do
   end
 
   defp update_team(team, "win") do
-    team
-    |> Map.update(:wins, 0, &(&1 + 1)) 
-    |> Map.update(:points, 0, &(&1 + 3))
-    |> update_team(:matches)
+    %{team | wins: team.wins + 1, points: team.points + 3, matches: team.matches + 1}
   end
 
   defp update_team(team, "draw") do
-    team
-    |> Map.update(:draw, 0, &(&1 + 1)) 
-    |> Map.update(:points, 0, &(&1 + 1))
-    |> update_team(:matches)
+    %{team | draw: team.draw + 1, points: team.points + 1, matches: team.matches + 1}
   end
 
   defp update_team(team, "loss") do
-    team
-    |> Map.update(:loss, 0, &(&1 + 1)) 
-    |> update_team(:matches)
-  end
-
-  defp update_team(team, :matches) do
-    team
-    |> Map.update(:matches, 0, &(&1 + 1))
-  end
-
-  defp format_tally(list_of_teams) do
-    header = """
-    Team                           | MP |  W |  D |  L |  P
-    """
-
-    formatted_teams = list_of_teams
-    |> Enum.map_join("\n", &format_team/1)
-  
-    header <> formatted_teams
+    %{team | loss: team.loss + 1, matches: team.matches + 1}
   end
 
   @team_char_width 30
   @stat_char_width 2
 
-  defp format_team(team) do
-    name = String.pad_trailing("#{team.name}", @team_char_width)
+  defp format_tally(teams) do
+    [~w(Team MP W D L P) | team_maps_to_list(teams)]
+    |> format_output
+  end
 
-    [team.matches, team.wins, team.draw, team.loss, team.points]
-    |> Enum.map(&String.pad_leading("#{&1}", @stat_char_width))
-    |> List.insert_at(0, name)
-    |> Enum.join(" | ")
+  defp team_maps_to_list(teams) do
+    Enum.map(teams, fn team -> [team.name, team.matches, team.wins, team.draw, team.loss, team.points] end)
+  end
+
+  defp format_output(lines) do
+    lines
+    |> Enum.map(fn [name | stats] ->
+      name = String.pad_trailing(name, @team_char_width)
+      stats = Enum.map(stats, &String.pad_leading("#{&1}", @stat_char_width))
+
+      Enum.join([name | stats], " | ")
+    end)
+    |> Enum.join("\n")
   end
 end
