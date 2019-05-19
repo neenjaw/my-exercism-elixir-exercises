@@ -24,7 +24,7 @@ defmodule BinarySearchTree do
   @spec in_order(bst_node) :: [any]
   def in_order(tree), do: do_in_order(tree, [])
 
-  defp do_in_order(nil, greater), do: greater
+  defp do_in_order(nil, greater_elements), do: greater_elements
   defp do_in_order(%{data: d, left: l, right: r}, prev_greater_elements) do
     greater_elements = do_in_order(r, prev_greater_elements)
 
