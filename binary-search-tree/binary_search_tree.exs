@@ -24,6 +24,9 @@ defmodule BinarySearchTree do
   @spec in_order(bst_node) :: [any]
   def in_order(tree), do: do_in_order(tree, [])
 
+  # This is the base case which occurs at the leaf nodes, the last leaf node it will
+  # be called on will be the farthest left leaf node (the smallest)'s nil child  which
+  # will mark the end of the in order traversal
   defp do_in_order(nil, greater_elements), do: greater_elements
   defp do_in_order(%{data: d, left: l, right: r}, prev_greater_elements) do
     greater_elements = do_in_order(r, prev_greater_elements)
