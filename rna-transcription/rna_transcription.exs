@@ -9,13 +9,25 @@ defmodule RNATranscription do
   """
   @spec to_rna([char]) :: [char]
   def to_rna(dna) do
-    dna
-    |> Enum.map(fn
+    Enum.map(dna, fn
       ?A -> ?U
       ?C -> ?G
       ?T -> ?A
-      ?G -> ?C      
+      ?G -> ?C
     end)
   end
-    
+
+  # Non-performant:
+  #
+  # def to_rna(dna) do
+  #   mapper = fn
+  #     ?A -> ?U
+  #     ?C -> ?G
+  #     ?T -> ?A
+  #     ?G -> ?C
+  #   end
+
+  #   Enum.reduce(dna, [], fn nuc, acc -> acc ++ [mapper.(nuc)] end)
+  # end
+
 end

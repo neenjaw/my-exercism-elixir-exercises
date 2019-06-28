@@ -32,4 +32,14 @@ defmodule RNATranscriptionTest do
   test "it transcribes all dna nucleotides to rna equivalents" do
     assert RNATranscription.to_rna('ACGTGGTCTTAA') == 'UGCACCAGAAUU'
   end
+
+  test "a very long strand to discover performance issues" do
+    {dna_strand, rna_strand} =
+      [{?A, ?U}, {?C, ?G}, {?T, ?A}, {?G, ?C}]
+      |> Stream.cycle()
+      |> Stream.take(27_000)
+      |> Enum.unzip()
+
+    assert RNATranscription.to_rna(dna_strand) == rna_strand
+  end
 end
