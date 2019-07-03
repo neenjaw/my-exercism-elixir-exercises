@@ -10,9 +10,11 @@ defmodule Words do
     #   - non-unicode word characters
     #   - non hyphens
     #   - underscores
+    split_by = ~r{[^[:alnum:]-]}u
+
     sentence
-      |> String.downcase()
-      |> String.split(~r{([^\w-]|_)+}u, trim: true)
-      |> List.foldl(%{}, fn x, acc -> Map.update(acc, x, 1, &(&1 + 1)) end)
+    |> String.downcase()
+    |> String.split(split_by, trim: true)
+    |> List.foldl(%{}, fn x, acc -> Map.update(acc, x, 1, &(&1 + 1)) end)
   end
 end
