@@ -66,14 +66,8 @@ defmodule Matrix do
   @spec columns(matrix :: %Matrix{}) :: list(list(integer))
   def columns(matrix) do
     matrix.matrix
-    |> Enum.reduce(fn row, build_matrix ->
-      for {a, b} <- Enum.zip(build_matrix, row) do
-        cond do
-          is_list(a) -> a ++ [b]
-          true -> [a] ++ [b]  
-        end
-      end
-    end)
+    |> Enum.zip()
+    |> Enum.map(fn row_tuple -> Tuple.to_list(row_tuple) end)
   end
 
   @doc """
