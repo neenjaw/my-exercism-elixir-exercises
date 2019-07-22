@@ -47,7 +47,7 @@ defmodule ISBNVerifier do
       true -> {:error, "not an isbn"}
     end
   end
-  
+
   @doc """
     Takes a string representation of the ISBN without dashes and returns
     whether it matches the ISBN-10 format
@@ -66,7 +66,7 @@ defmodule ISBNVerifier do
   @spec match_isbn_13?(String.t()) :: boolean
   def match_isbn_13?(str) do
     isbn_13 = ~r/\d{13}/u
-    
+
     String.length(str) == 13 and String.match?(str, isbn_13)
   end
 
@@ -83,9 +83,9 @@ defmodule ISBNVerifier do
     digit =
       case d do
         "X" -> 10
-         _  -> String.to_integer(d)  
+         _  -> String.to_integer(d)
       end
-    
+
     do_check_isbn_10_digits(rest, :end, (digit + sum))
   end
   defp do_check_isbn_10_digits([d | rest], place, sum) do
@@ -111,12 +111,12 @@ defmodule ISBNVerifier do
         p when p >= 13 -> :end
         _ -> place+1
       end
-    
+
     do_check_isbn_13_digits(rest, next_place, (digit+sum))
   end
   defp do_check_isbn_13_digits([d | rest], place, sum) when rem(place, 2) == 0 do
     digit = String.to_integer(d)
-    
+
     do_check_isbn_13_digits(rest, place+1, ((digit*3)+sum))
   end
 
@@ -149,14 +149,14 @@ defmodule ISBNVerifier do
 
   defp do_append_isbn_13_check_digit(digits, place \\ 1, sum \\ 0, acc \\ [])
   defp do_append_isbn_13_check_digit([], :end, sum, acc) do
-    check_digit = 
+    check_digit =
       (10 - rem(sum, 10))
       |> case do
         10 -> 0
-        d  -> d  
+        d  -> d
       end
 
-    [check_digit | acc] 
+    [check_digit | acc]
     |> Enum.reverse
     |> Integer.undigits
     |> Integer.to_string
@@ -172,7 +172,7 @@ defmodule ISBNVerifier do
     next_place =
       case place do
         12 -> :end
-        _  -> place + 1   
+        _  -> place + 1
       end
 
     do_append_isbn_13_check_digit(rest, next_place, ((digit*3)+sum), [digit | acc])
