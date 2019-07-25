@@ -17,8 +17,11 @@ defmodule Prime do
   
   defp calc_nth(n, acc, i) when acc < n do
     cond do
-      prime?(i+1) -> calc_nth(n, acc+1, i+1)
-      true          -> calc_nth(n, acc, i+1)
+      prime?(i+1) -> 
+        calc_nth(n, acc+1, i+1)
+        
+      true -> 
+        calc_nth(n, acc, i+1)
     end
   end
 
