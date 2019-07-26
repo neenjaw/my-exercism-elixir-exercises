@@ -4,9 +4,6 @@ defmodule Atbash do
   @r_alpha @alpha |> Enum.reverse
   @cipher_key Enum.zip(@alpha, @r_alpha) |> Map.new
 
-  @invalid_letters [" ", ".", ",", ";", ":", "(", ")", "[", "]", "{", "}", 
-                    "<", ">", "?", "|", "\\", "'", "+", "-", "_", "="]
-
   @doc """
   Encode a given plaintext to the corresponding ciphertext
 
@@ -19,9 +16,9 @@ defmodule Atbash do
   def encode(plaintext) do
     plaintext
     |> String.downcase
+    |> String.replace(~r/[^\p{L}\p{N}]/u, "")
     |> String.graphemes
-    |> Enum.filter(&filter_nonletters(&1))
-    |> Enum.map(fn g -> Map.get(@cipher_key, g, g) end)
+    |> Enum.map(&Map.get(@cipher_key, &1, &1))
     |> Enum.chunk_every(5)
     |> Enum.map_join(" ", fn w -> Enum.join(w) end)
   end
@@ -29,13 +26,9 @@ defmodule Atbash do
   @spec decode(String.t()) :: String.t()
   def decode(cipher) do
     cipher
+    |> String.replace(~r/[^\p{L}\p{N}]/u, "")
     |> String.graphemes
-    |> Enum.filter(&filter_nonletters(&1))
     |> Enum.map(fn g -> Map.get(@cipher_key, g, g) end)
-    |> Enum.join    
+    |> Enum.join
   end
-
-  defp filter_nonletters(g) when g in @invalid_letters, do: false
-  defp filter_nonletters(_), do: true
-
 end
