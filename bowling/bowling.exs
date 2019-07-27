@@ -1,15 +1,15 @@
 defmodule BowlingFrame do
   defstruct index: nil,
             rolls: []
-  
+
   @type t() :: %__MODULE__{
     index: integer,
     rolls: list(integer),
-  } 
+  }
 end
 
 defmodule Bowling do
-  alias Bowling, as: G
+  alias __MODULE__, as: G
   alias BowlingFrame, as: F
 
   defstruct frame_stack: [],
@@ -24,18 +24,18 @@ defmodule Bowling do
   @last_frame 10
   @pins 10
 
-  defguard rolled_strike?(roll) 
-    when is_integer(roll) 
+  defguard rolled_strike?(roll)
+    when is_integer(roll)
     and roll == @pins
 
-  defguard rolled_spare?(roll_a, roll_b) 
-    when is_integer(roll_a) 
-      and is_integer(roll_b) 
+  defguard rolled_spare?(roll_a, roll_b)
+    when is_integer(roll_a)
+      and is_integer(roll_b)
       and (roll_a + roll_b) == @pins
 
-  defguard valid_roll?(roll_a, roll_b) 
-    when is_integer(roll_a) 
-      and is_integer(roll_b) 
+  defguard valid_roll?(roll_a, roll_b)
+    when is_integer(roll_a)
+      and is_integer(roll_b)
       and (@pins - roll_a - roll_b) >= 0
 
   @doc """
@@ -45,7 +45,6 @@ defmodule Bowling do
 
   @spec start() :: Bowling.t()
   def start, do: %G{}
-
 
   @doc """
     Records the number of pins knocked down on a single roll. Returns the `game`
@@ -75,11 +74,11 @@ defmodule Bowling do
   end
 
   # Last Frame cases - 2nd roll - Return error for invalid second roll
-  def roll(%G{frame_stack: [%F{index: @last_frame, rolls: [r]} | _prev_frames]}, roll) 
-    when not rolled_strike?(r) and not valid_roll?(r, roll), 
+  def roll(%G{frame_stack: [%F{index: @last_frame, rolls: [r]} | _prev_frames]}, roll)
+    when not rolled_strike?(r) and not valid_roll?(r, roll),
     do: {:error, "Pin count exceeds pins on the lane"}
-  
-  # Last Frame cases - 2nd roll - Valid roll, determine if game is over 
+
+  # Last Frame cases - 2nd roll - Valid roll, determine if game is over
   def roll(game = %G{frame_stack: [frame = %F{index: @last_frame, rolls: [r]} | prev_frames]}, roll) do
     strike?     = rolled_strike?(r)
     spare?      = rolled_spare?(r, roll)
@@ -90,9 +89,9 @@ defmodule Bowling do
   end
 
   # Last Frame cases - Bonus roll
-  def roll(game = %G{frame_stack: [frame = %F{index: @last_frame, rolls: [r1, r2]} | prev_frames], game_over: false}, roll) 
+  def roll(game = %G{frame_stack: [frame = %F{index: @last_frame, rolls: [r1, r2]} | prev_frames], game_over: false}, roll)
     when rolled_strike?(r2) or rolled_spare?(r1, r2)
-    when rolled_strike?(r1) and valid_roll?(r2, roll) 
+    when rolled_strike?(r1) and valid_roll?(r2, roll)
     do
       %{game | frame_stack: [%{frame | rolls: (frame.rolls ++ [roll]) } | prev_frames], game_over: true}
   end
@@ -134,12 +133,15 @@ defmodule Bowling do
 
   # Recursively score the stack of frames, keeping an accumulator for the rolls and score sum
   defp do_scoring(frames, roll_acc \\ [], sum_acc \\ 0)
+
   defp do_scoring([], _roll_acc, sum_acc), do: sum_acc
+
   defp do_scoring([%F{index: @last_frame, rolls: rs} | prev_frames], roll_acc, sum_acc) do
     frame_sum = rs |> Enum.sum
 
     do_scoring(prev_frames, (rs ++ roll_acc), (sum_acc + frame_sum))
   end
+
   defp do_scoring([%F{rolls: rs} | prev_frames], roll_acc, sum_acc) do
     frame_sum = rs |> Enum.sum
 
@@ -147,7 +149,7 @@ defmodule Bowling do
       case rs do
         [r] when rolled_strike?(r)          -> roll_acc |> Enum.take(2) |> Enum.sum
         [r1, r2] when rolled_spare?(r1, r2) -> roll_acc |> hd
-        _                                   -> 0  
+        _                                   -> 0
       end
 
     do_scoring(prev_frames, (rs ++ roll_acc), (sum_acc + frame_sum + frame_bonus))

@@ -4,7 +4,7 @@ defmodule Forth do
   @opaque evaluator :: map
 
   defstruct evaluator: %{},
-            stack: [] 
+            stack: []
 
   # Match whitespace, binary nonprintable, ASCII control characters
   @input_chunk_regex ~r/\s|[\x00-\x1A]|[\cA-\cZ]/u
@@ -20,15 +20,17 @@ defmodule Forth do
 
   # Create the default evaluator function map
   defp get_default_evaluator do
-    %{}
-    |> Map.put("+", &operation_add/1)
-    |> Map.put("-", &operation_subtract/1)
-    |> Map.put("*", &operation_product/1)
-    |> Map.put("/", &operation_integer_div/1)
-    |> Map.put("dup", &operation_duplicate/1)
-    |> Map.put("drop", &operation_drop/1)
-    |> Map.put("swap", &operation_swap/1)
-    |> Map.put("over", &operation_over/1)
+    [
+      {"+", &operation_add/1},
+      {"-", &operation_subtract/1},
+      {"*", &operation_product/1},
+      {"/", &operation_integer_div/1},
+      {"dup", &operation_duplicate/1},
+      {"drop", &operation_drop/1},
+      {"swap", &operation_swap/1},
+      {"over", &operation_over/1}
+    ]
+    |> Enum.reduce(%{}, fn {operator, operation}, map -> Map.put(map, operator, operation end))
   end
 
   # Add function
@@ -36,7 +38,7 @@ defmodule Forth do
     {[addend1, addend2], rem_stack} = stack |> take_from_stack(2)
 
     [(addend1 + addend2) | rem_stack]
-  end 
+  end
 
   # Subtract function
   defp operation_subtract(stack) do
@@ -135,10 +137,10 @@ defmodule Forth do
     cond do
       input == @definition_start ->
         {:start_word_definition, input}
-      
-      Map.has_key?(evaluator, input) -> 
+
+      Map.has_key?(evaluator, input) ->
         {:defined_operation, input}
-        
+
       Kernel.is_integer(input) ->
         {:integer_number, input}
 
@@ -154,7 +156,7 @@ defmodule Forth do
 
   defp get_integer_from_string(str) do
     try do
-      {:ok, str |> String.to_integer} 
+      {:ok, str |> String.to_integer}
     rescue
       ArgumentError -> {:error, "not an integer"}
     end
@@ -163,9 +165,9 @@ defmodule Forth do
   # add a new word definition to the evaluator, return the updated evaluator, stack, and any remaining inputs
   defp handle_new_definition(ev = %F{evaluator: e}, [new_word | definition_inputs]) do
     what_is_input?(new_word, e)
-    
+
     |> case do
-      {:integer_number, _} -> 
+      {:integer_number, _} ->
         raise Forth.InvalidWord, word: "cannot redefine a number"
 
       {:start_word_definition, _} ->
@@ -176,7 +178,7 @@ defmodule Forth do
     end
 
     |> case do
-      {:ok, word_definition, remaining_inputs} -> 
+      {:ok, word_definition, remaining_inputs} ->
         {:ok_new_word, %{ev | evaluator: Map.put(e, new_word, word_definition)}, remaining_inputs}
     end
   end
@@ -184,31 +186,31 @@ defmodule Forth do
   # build the word definition's macro
   defp do_handle_new_definition(word, word_inputs, evaluator, fs_acc \\ [])
   # error cases
-  defp do_handle_new_definition(_word, [], _e, _fs_acc), 
+  defp do_handle_new_definition(_word, [], _e, _fs_acc),
     do: raise Forth.InvalidWord, word: "definition missing '#{@definition_end}'"
-  defp do_handle_new_definition(word, [word | _word_inputs], _e, _fs_acc), 
+  defp do_handle_new_definition(word, [word | _word_inputs], _e, _fs_acc),
     do: raise Forth.InvalidWord, word: "cannot define '#{word}' with '#{word}'"
   # success case
   defp do_handle_new_definition(_word, [@definition_end | rem_inputs], _e, fs_acc) do
     fs = fs_acc |> Enum.reverse
-    
+
     {:ok, fs, rem_inputs}
   end
   # recursive case
   defp do_handle_new_definition(word, [f | word_inputs], e, fs_acc) do
     what_is_input?(f, e)
-    
+
     |> case do
-      {:defined_operation, op} -> 
+      {:defined_operation, op} ->
         do_handle_new_definition(word, word_inputs, e, [op | fs_acc])
-        
+
       {:integer_number, i} ->
         do_handle_new_definition(word, word_inputs, e, [i | fs_acc])
 
       {_, w} -> raise Forth.InvalidWord, word: "cannot use #{w} in definition"
     end
   end
-  
+
   # Perform the operation defined by the word on the stack
   #   - If it's a function, call the function,
   #   - If it's a list of words defined, then evaluate the defined list
@@ -236,7 +238,7 @@ defmodule Forth do
   end
 
   # Custom Errors
-  
+
   defmodule StackUnderflow do
     defexception []
     def message(_), do: "stack underflow"

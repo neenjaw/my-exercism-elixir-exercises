@@ -10,12 +10,15 @@ defmodule Luhn do
     |> clean_and_reverse_number
     |> case do
       :error -> false
+
       [_]    -> false
+
       number_list ->
-        luhn_sum = number_list
-          |> double_every_second_number
-          |> subtract_nine_if_over_nine
-          |> Enum.sum
+        luhn_sum =
+          number_list
+          |> double_every_second_number()
+          |> subtract_nine_if_over_nine()
+          |> Enum.sum()
 
         # check if evenly divisible by 10
         rem(luhn_sum, 10) == 0
@@ -28,7 +31,7 @@ defmodule Luhn do
     do
       cleaned_number_string_list
       |> Enum.map(fn n -> String.to_integer(n) end)
-    else 
+    else
       {:error, _} -> :error
     end
   end
@@ -50,5 +53,5 @@ defmodule Luhn do
   end
 
   defp do_subtract_nine_if_over_nine(number) when number > 9, do: number - 9
-  defp do_subtract_nine_if_over_nine(number), do: number    
+  defp do_subtract_nine_if_over_nine(number), do: number
 end

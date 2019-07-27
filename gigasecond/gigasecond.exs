@@ -1,4 +1,7 @@
 defmodule Gigasecond do
+
+  @gigasecond 1_000_000_000
+
   @doc """
   Calculate a date one billion seconds after an input date.
   """
@@ -7,7 +10,7 @@ defmodule Gigasecond do
   def from({{year, month, day}, {hours, minutes, seconds}} = dt) do
     dt
     |> NaiveDateTime.from_erl!
-    |> NaiveDateTime.add(1_000_000_000)
+    |> NaiveDateTime.add(@gigasecond)
     |> NaiveDateTime.to_erl
   end
 end

@@ -1,11 +1,20 @@
 defmodule Bob do
   def hey(input) do
     cond do
-      blank? input -> "Fine. Be that way!"
-      question?(input) and capitals?(input) and letters?(input) -> "Calm down, I know what I'm doing!"
-      question?(input) -> "Sure."
-      capitals?(input) and letters?(input) -> "Whoa, chill out!"
-      true -> "Whatever."
+      blank? input ->
+        "Fine. Be that way!"
+
+      question?(input) and capitals?(input) and letters?(input) ->
+        "Calm down, I know what I'm doing!"
+
+      question?(input) ->
+        "Sure."
+
+      capitals?(input) and letters?(input) ->
+        "Whoa, chill out!"
+
+      true ->
+        "Whatever."
     end
   end
 

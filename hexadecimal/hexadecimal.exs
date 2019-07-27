@@ -41,20 +41,17 @@ defmodule Hexadecimal do
     |> String.graphemes
 
     grapheme_list
-    |> Stream.zip((length(grapheme_list)-1)..0)
+    |> Enum.reverse()
+    |> Stream.with_index()
     |> Stream.map(fn {char, place} -> {Map.fetch(@map_hex_to_dec, char), place} end)
-    |> Stream.map(fn 
+    |> Stream.map(fn
       {:error, _} -> :error
       {{:ok, value}, place} -> value * pow(16, place)
     end)
-    |> Enum.reduce(0, fn
-      :error, _acc -> :error
-      value,  acc  -> value + acc
+    |> Enum.reduce_while(0, fn
+      :error, _acc -> {:halt, 0}
+      value,   acc -> {:cont, value + acc}
     end)
-    |> case do
-      :error -> 0
-      v -> v
-    end 
   end
 
   defp pow(_v, 0), do: 1

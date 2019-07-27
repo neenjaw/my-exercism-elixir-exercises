@@ -34,26 +34,17 @@ defmodule Grep.Flags do
   A function which takes a parameter, and selects the proper do_function to parse the list
   based on the type.
   """
-  def parse(flags) when is_list(flags), do: flags |> parse_list #|> check_inconsistent_flags
+  def parse(flags) when is_list(flags), do: flags |> parse_list()
 
-  @doc """
-  Parses the flags from a list of flags
-  """
+  # Parses the flags from a list of flags
   defp parse_list(list, map \\ %Grep.Flags{})
   defp parse_list([], map), do: map
-  defp parse_list(["-n" | rest], map), do: parse_list(rest, %{map | print_line_numbers: true})
-  defp parse_list(["-l" | rest], map), do: parse_list(rest, %{map | print_only_file_names: true})
-  defp parse_list(["-i" | rest], map), do: parse_list(rest, %{map | case_insensitive: true})
-  defp parse_list(["-v" | rest], map), do: parse_list(rest, %{map | invert_match: true})
-  defp parse_list(["-x" | rest], map), do: parse_list(rest, %{map | match_whole_line: true})
-  defp parse_list([opt | rest], map), do: raise ArgumentError, "Unknown option '#{opt}'"
-
-  @doc """
-  A function to check if inconsistent flags are selected.
-  """
-  defp check_inconsistent_flags(%Grep.Flags{print_only_file_names: true, print_line_numbers: true}),
-    do: raise ArgumentError
-  defp check_inconsistent_flags(map), do: map
+  defp parse_list(["-n" |  rest],  map), do: parse_list(rest, %{map | print_line_numbers: true})
+  defp parse_list(["-l" |  rest],  map), do: parse_list(rest, %{map | print_only_file_names: true})
+  defp parse_list(["-i" |  rest],  map), do: parse_list(rest, %{map | case_insensitive: true})
+  defp parse_list(["-v" |  rest],  map), do: parse_list(rest, %{map | invert_match: true})
+  defp parse_list(["-x" |  rest],  map), do: parse_list(rest, %{map | match_whole_line: true})
+  defp parse_list([opt  | _rest], _map), do: raise ArgumentError, "Unknown option '#{opt}'"
 end
 
 defmodule Grep do
@@ -67,22 +58,20 @@ defmodule Grep do
   """
   @spec grep(String.t(), [String.t()], [String.t()]) :: String.t()
   def grep(pattern, flag_list, files) do
-    with safe_pattern <- Regex.escape(pattern),
-         flags        <- Grep.Flags.parse(flag_list),
-         multi_flags  <- %{flags | print_file_names: (length(files) > 1)},
-         match_func   <- get_match_function(pattern, multi_flags),
-         matches      <- do_grep(match_func, multi_flags, files)
+    with _safe_pattern <- Regex.escape(pattern),
+         flags         <- Grep.Flags.parse(flag_list),
+         multi_flags   <- %{flags | print_file_names: (length(files) > 1)},
+         match_func    <- get_match_function(pattern, multi_flags),
+         matches       <- do_grep(match_func, multi_flags, files)
     do
       format_results(matches, multi_flags)
     end
   end
 
-  @doc """
-  A recursive function with recurses through the list of files.  Processing them in sequence.
-  """
+  # A recursive function with recurses through the list of files.  Processing them in sequence.
   defp do_grep(match_function, flags, files_to_read, matches \\ [])
 
-  defp do_grep(_match_function, flags, [], matches), do: matches |> Enum.reverse
+  defp do_grep(_match_function, _flags, [], matches), do: matches |> Enum.reverse
 
   defp do_grep(match_function, flags, [file | rest], matches) do
     file_matches =
@@ -94,11 +83,9 @@ defmodule Grep do
     do_grep(match_function, flags, rest, [file_record | matches])
   end
 
-  @doc """
-  Function with takes a filename, then opens a File.Stream to process the file and look
-  for matches based on the match_function and flags specified
-  """
-  defp process_file(file, match_function, flags) do
+  # Function with takes a filename, then opens a File.Stream to process the file and look
+  # for matches based on the match_function and flags specified
+  defp process_file(file, match_function, _flags) do
     "./#{file}"
     |> File.stream!()
     |> Stream.with_index(1)
@@ -112,9 +99,7 @@ defmodule Grep do
     |> Enum.to_list
   end
 
-  @doc """
-  Function which takes the line and line_number, returns either a %Grep.Match{} or :no_match
-  """
+  # Function which takes the line and line_number, returns either a %Grep.Match{} or :no_match
   defp process_line(line, line_number, match?) do
     if match?.(line) do
       %Grep.Match{line_number: line_number, line: line}
@@ -123,17 +108,21 @@ defmodule Grep do
     end
   end
 
-  @doc """
-  Based on the pattern, flags, builds a regular expression for searching the line of the file.
-  """
+  # Based on the pattern, flags, builds a regular expression for searching the line of the file.
   defp get_match_function(pattern, flags) do
     options =
-      "u"
-      |> (fn o, flags -> if flags.case_insensitive, do: o <> "i", else: o end).(flags)
+      if flags.case_insensitive do
+        "ui"
+      else
+        "u"
+      end
 
     pattern_source =
-      pattern
-      |> (fn p, flags -> if flags.match_whole_line, do: "^#{p}$", else: p end).(flags)
+      if flags.match_whole_line do
+        "^#{pattern}$"
+      else
+        pattern
+      end
 
     {:ok, compiled_pattern} =
       Regex.compile(pattern_source, options)
@@ -151,23 +140,20 @@ defmodule Grep do
     end
   end
 
-  @doc """
-  Formats the results based on flags specified
-  """
-  defp format_results(matches, flags = %Grep.Flags{print_only_file_names: true}) do
+  # Formats the results based on flags specified
+  defp format_results(matches, _flags = %Grep.Flags{print_only_file_names: true}) do
     matches
     |> Enum.filter(fn file -> if file.matches == [], do: false, else: true end)
     |> Enum.map_join(fn file -> file.file_name <> "\n" end)
   end
+
   defp format_results(matches, flags = %Grep.Flags{}) do
     Enum.map_join(matches, fn file ->
       Enum.map_join(file.matches, &match_to_string(&1, file.file_name, flags))
     end)
   end
 
-  @doc """
-  Formats a %Grep.Match{} into a string.
-  """
+  # Formats a %Grep.Match{} into a string.
   defp match_to_string(match, file_name, flags) do
     prepend_file_name = fn str ->
       if flags.print_file_names do

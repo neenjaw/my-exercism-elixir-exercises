@@ -78,7 +78,6 @@ defmodule Connect do
     board
     |> Board.create()
     |> check_teams_for_result(@teams)
-
   end
 
   @doc """
@@ -98,7 +97,7 @@ defmodule Connect do
         @black -> :black
       end
     else
-      {:no_starting_points, e} ->
+      {:no_starting_points, _e} ->
         check_teams_for_result(board, teams)
 
       {:traverse, false} ->
@@ -213,16 +212,14 @@ defmodule Connect do
     end
   end
 
-  @doc """
-  Get the next adjacent space or else
-
-  In the MapSet, {team,x,y} is connected to:
-  previous row: {team, x-1, y},   {team, x-1, y+1},
-  current row:  {team, x,   y-1}, {team, x,   y+1},
-  next row:     {team, x+1, y-1}, {team, x+1, y}
-  """
   @index_mutations_for_lookaround [{-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}]
 
+  # Get the next adjacent space or else return error
+  #
+  # In the MapSet, {team,x,y} is connected to:
+  # previous row: {team, x-1, y},   {team, x-1, y+1},
+  # current row:  {team, x,   y-1}, {team, x,   y+1},
+  # next row:     {team, x+1, y-1}, {team, x+1, y}
   defp find_next_points(mapset, _current = {team, x, y}) do
     @index_mutations_for_lookaround
     |> Enum.map(fn {a, b} -> {team, x+a, y+b} end)
@@ -241,13 +238,14 @@ defmodule MyTest do
   end
 
   def x() do
-    remove_spaces([
+    [
       ". X X . .",
       " X . X . X",
       "  . X . X .",
       "   . X X . .",
       "    O O O O O"
-    ])
+    ]
+    |> remove_spaces()
     |> Connect.result_for()
   end
 end

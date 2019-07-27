@@ -1,10 +1,19 @@
 defmodule Garden do
   @default_names [
-    :alice, :bob, :charlie, :david, :eve,
-    :fred, :ginny, :harriet, :ileana, 
-    :joseph, :kincaid, :larry
-    ]
-    
+    :alice,
+    :bob,
+    :charlie,
+    :david,
+    :eve,
+    :fred,
+    :ginny,
+    :harriet,
+    :ileana,
+    :joseph,
+    :kincaid,
+    :larry
+  ]
+
   @plant_map %{
     "V" => :violets,
     "R" => :radishes,
@@ -26,15 +35,15 @@ defmodule Garden do
     sorted_names = student_names |> Enum.sort
 
     # create an empty tuple for each name
-    garden_map = sorted_names
-    |> Enum.reduce(%{}, fn n, map -> Map.put(map, n, {}) end)
-    
+    garden_map =
+      sorted_names |> Enum.reduce(%{}, fn n, map -> Map.put(map, n, {}) end)
+
     # split the string by line, then parse each line
     info_string
     |> String.split("\n")
     |> Enum.reduce(garden_map, &parse_garden_row(&1, &2, sorted_names))
   end
-  
+
   defp parse_garden_row(row, garden_map, names) do
     row
     |> String.graphemes
@@ -42,17 +51,19 @@ defmodule Garden do
     |> Enum.zip(names)
     |> Enum.reduce(garden_map, &add_to_garden(&1, &2))
   end
-  
+
   defp add_to_garden({pair, name}, garden_map) do
     pair
     |> Enum.reduce(garden_map, fn plant, gmap ->
       plant_atom = Map.get(@plant_map, plant)
-    
-      Map.get_and_update(gmap, name, fn
-        nil -> {nil, {plant_atom}} # nil should never occur since the names were seeded
-        student_plants -> {student_plants, Tuple.append(student_plants, plant_atom)}
-      end)
-      |> elem(1) #return just the map from the tuple from `Map.get_and_update`
+
+      {_, result_map} =
+        Map.get_and_update(gmap, name, fn
+          nil -> {nil, {plant_atom}} # nil should never occur since the names were seeded
+          student_plants -> {student_plants, Tuple.append(student_plants, plant_atom)}
+        end)
+
+      result_map
     end)
   end
 end

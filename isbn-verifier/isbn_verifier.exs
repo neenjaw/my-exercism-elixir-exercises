@@ -20,7 +20,7 @@ defmodule ISBNVerifier do
   @spec isbn?(String.t()) :: boolean
   def isbn?(isbn) do
     isbn
-    |> check_isbn_format
+    |> check_isbn_format()
     |> case do
       {:ok, :isbn_10, isbn} -> check_isbn_10_digits(isbn)
       {:ok, :isbn_13, isbn} -> check_isbn_13_digits(isbn)
@@ -38,8 +38,7 @@ defmodule ISBNVerifier do
     dashes = "-"
 
     clean_isbn =
-      dirty_isbn
-      |> String.replace(dashes, "")
+      String.replace(dirty_isbn, dashes, "")
 
     cond do
       match_isbn_10?(clean_isbn) -> {:ok, :isbn_10, clean_isbn}
@@ -78,7 +77,9 @@ defmodule ISBNVerifier do
   def check_isbn_10_digits(s) when is_binary(s), do: s |> String.graphemes() |> do_check_isbn_10_digits()
 
   defp do_check_isbn_10_digits(str_digits, place \\ 10, sum \\ 0)
+
   defp do_check_isbn_10_digits([], :end, sum), do: rem(sum, 11) == 0
+
   defp do_check_isbn_10_digits([d | rest], 1, sum) do
     digit =
       case d do
@@ -88,6 +89,7 @@ defmodule ISBNVerifier do
 
     do_check_isbn_10_digits(rest, :end, (digit + sum))
   end
+
   defp do_check_isbn_10_digits([d | rest], place, sum) do
     digit = String.to_integer(d)
 
@@ -102,7 +104,9 @@ defmodule ISBNVerifier do
   def check_isbn_13_digits(s) when is_binary(s), do: s |> String.graphemes() |> do_check_isbn_13_digits()
 
   defp do_check_isbn_13_digits(str_digits, place \\ 1, sum \\ 0)
+
   defp do_check_isbn_13_digits([], :end, sum), do: rem(sum, 10) == 0
+
   defp do_check_isbn_13_digits([d | rest], place, sum) when rem(place, 2) == 1 do
     digit = String.to_integer(d)
 
@@ -114,6 +118,7 @@ defmodule ISBNVerifier do
 
     do_check_isbn_13_digits(rest, next_place, (digit+sum))
   end
+
   defp do_check_isbn_13_digits([d | rest], place, sum) when rem(place, 2) == 0 do
     digit = String.to_integer(d)
 
@@ -122,7 +127,7 @@ defmodule ISBNVerifier do
 
 
   @doc """
-    Takes a string representation of the ISBN-10 and creates an 
+    Takes a string representation of the ISBN-10 and creates an
     ISBN-13 representation with new check digit
   """
   @spec isbn_10_to_isbn_13(String.t()) :: boolean
@@ -148,6 +153,7 @@ defmodule ISBNVerifier do
   def append_isbn_13_check_digit(s) when is_binary(s), do: s |> String.graphemes |> do_append_isbn_13_check_digit
 
   defp do_append_isbn_13_check_digit(digits, place \\ 1, sum \\ 0, acc \\ [])
+
   defp do_append_isbn_13_check_digit([], :end, sum, acc) do
     check_digit =
       (10 - rem(sum, 10))
@@ -161,11 +167,13 @@ defmodule ISBNVerifier do
     |> Integer.undigits
     |> Integer.to_string
   end
+
   defp do_append_isbn_13_check_digit([d | rest], place, sum, acc) when rem(place,2) == 1 do
     digit = String.to_integer(d)
 
     do_append_isbn_13_check_digit(rest, place+1, (digit + sum), [digit | acc])
   end
+
   defp do_append_isbn_13_check_digit([d | rest], place, sum, acc) when rem(place, 2) == 0 do
     digit = String.to_integer(d)
 
