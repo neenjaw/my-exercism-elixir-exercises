@@ -1,22 +1,8 @@
-# RNA Transcription
+# Matching Brackets
 
-Given a DNA strand, return its RNA complement (per RNA transcription).
-
-Both DNA and RNA strands are a sequence of nucleotides.
-
-The four nucleotides found in DNA are adenine (**A**), cytosine (**C**),
-guanine (**G**) and thymine (**T**).
-
-The four nucleotides found in RNA are adenine (**A**), cytosine (**C**),
-guanine (**G**) and uracil (**U**).
-
-Given a DNA strand, its transcribed RNA strand is formed by replacing
-each nucleotide with its complement:
-
-* `G` -> `C`
-* `C` -> `G`
-* `T` -> `A`
-* `A` -> `U`
+Given a string containing brackets `[]`, braces `{}`, parentheses `()`,
+or any combination thereof, verify that any and all pairs are matched
+and nested correctly.
 
 ## Running tests
 
@@ -55,7 +41,7 @@ out there where answers might be found.
 
 ## Source
 
-Hyperphysics [http://hyperphysics.phy-astr.gsu.edu/hbase/Organic/transcription.html](http://hyperphysics.phy-astr.gsu.edu/hbase/Organic/transcription.html)
+Ginna Baker
 
 ## Submitting Incomplete Solutions
 It's possible to submit an incomplete solution so you can see how others have completed the exercise.

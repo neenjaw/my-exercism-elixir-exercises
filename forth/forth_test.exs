@@ -101,6 +101,15 @@ defmodule ForthTest do
     end
   end
 
+  test "drop then redefining a redefined built-in word" do
+    s =
+      Forth.new()
+      |> Forth.eval("1 drop : swap dup ; 1 swap : swap + ; swap")
+      |> Forth.format_stack()
+
+    assert s == "2"
+  end
+
   # @tag :pending
   test "swap" do
     s =
@@ -183,6 +192,17 @@ defmodule ForthTest do
       |> Forth.format_stack()
 
     assert s == "1 1"
+  end
+
+  # @tag :pending
+  test "redefining a redefined built-in word" do
+    s =
+      Forth.new()
+      |> Forth.eval(": swap dup ; 1 swap")
+      |> Forth.eval(": swap + ; swap")
+      |> Forth.format_stack()
+
+    assert s == "2"
   end
 
   # @tag :pending

@@ -1,4 +1,4 @@
-defmodule RNATranscription do
+defmodule RnaTranscription do
   @doc """
   Transcribes a character list representing DNA nucleotides to RNA
 
@@ -7,7 +7,7 @@ defmodule RNATranscription do
   iex> RNATranscription.to_rna('ACTG')
   'UGAC'
   """
-  @spec to_rna([char]) :: [char]
+  @spec to_rna(charlist) :: charlist
   def to_rna(dna) do
     Enum.map(dna, fn
       ?A -> ?U
@@ -17,17 +17,13 @@ defmodule RNATranscription do
     end)
   end
 
-  # Non-performant:
-  #
   # def to_rna(dna) do
-  #   mapper = fn
-  #     ?A -> ?U
-  #     ?C -> ?G
-  #     ?T -> ?A
-  #     ?G -> ?C
-  #   end
-
-  #   Enum.reduce(dna, [], fn nuc, acc -> acc ++ [mapper.(nuc)] end)
+  #   dna
+  #     |> Enum.map(&complement/1)
   # end
 
+  # def complement(?A), do: ?U
+  # def complement(?C), do: ?G
+  # def complement(?T), do: ?A
+  # def complement(?G), do: ?C
 end

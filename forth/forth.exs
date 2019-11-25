@@ -30,7 +30,7 @@ defmodule Forth do
       {"swap", &operation_swap/1},
       {"over", &operation_over/1}
     ]
-    |> Enum.reduce(%{}, fn {operator, operation}, map -> Map.put(map, operator, operation end))
+    |> Enum.reduce(%{}, fn {operator, operation}, map -> Map.put(map, operator, operation) end)
   end
 
   # Add function
