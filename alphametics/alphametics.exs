@@ -23,7 +23,7 @@ defmodule Alphametics do
          equation <- get_equation(formatted_puzzle),
          true <- valid_puzzle?(equation),
          raw_letter_value_map <- get_letter_value_map(formatted_puzzle),
-         letter_value_map <- remove_zero_possibilities(raw_letter_value_map, formatted_puzzle),
+         letter_value_map <- remove_zero_possibilities(raw_letter_value_map, equation),
          rules <- build_constraint_rules(equation),
          letters <- Map.keys(letter_value_map),
          {:ok, solution} <- generate_solution(letters, letter_value_map, equation, rules) do
@@ -35,11 +35,12 @@ defmodule Alphametics do
   end
 
   def get_equation(puzzle) do
-    ~r/(?'term'\w+|==)/u
-    |> Regex.scan(puzzle, capture: :all_names)
-    |> List.flatten()
-    |> Enum.split_while(fn term -> term != "==" end)
-    |> (fn {left, [_eq | right]} -> {left, right} end).()
+    [left, right] =
+      puzzle
+      |> String.split(" == ", trim: true)
+      |> Enum.map(&String.split(&1, " + ", trim: true))
+
+    {left, right}
   end
 
   defp valid_puzzle?(_equation = {left, right}) do
@@ -57,38 +58,24 @@ defmodule Alphametics do
       )
   end
 
-  defp max_term_length([]), do: nil
-
   defp max_term_length(terms) when is_list(terms) do
-    do_max_term_length(terms)
-  end
-
-  defp do_max_term_length(terms, max \\ 0)
-  defp do_max_term_length([], max), do: max
-
-  defp do_max_term_length([term | rest], max) do
-    length_of_term = String.length(term)
-
-    cond do
-      length_of_term > max -> do_max_term_length(rest, length_of_term)
-      true -> do_max_term_length(rest, max)
-    end
+    Enum.map(terms, &String.length/1) |> Enum.max()
   end
 
   defp get_letter_value_map(puzzle) do
     puzzle
     |> to_charlist
     |> Enum.filter(&(&1 in ?A..?Z))
+    |> Enum.uniq()
     |> Map.new(fn c -> {c, @initial_possibiltiies} end)
   end
 
-  defp remove_zero_possibilities(letter_map, puzzle) do
-    Regex.scan(~r/(^|\W)(?'letter'\w)/u, puzzle, capture: :all_names)
-    |> List.flatten()
+  defp remove_zero_possibilities(letter_map, {left, right}) do
+    right ++ left
+    |> Enum.map(&to_charlist/1)
+    |> Enum.map(&hd/1)
     |> Enum.uniq()
-    |> Enum.reduce(letter_map, fn l, map ->
-      c = l |> to_charlist |> hd
-
+    |> Enum.reduce(letter_map, fn c, map ->
       new_possibiltiies = List.delete(map[c], 0)
 
       Map.put(map, c, new_possibiltiies)
@@ -144,11 +131,7 @@ defmodule Alphametics do
     length_left = length(left)
     length_right = length(right)
 
-    max_length =
-      cond do
-        length_left >= length_right -> length_left
-        true -> length_right
-      end
+    max_length = if length_left >= length_right, do: length_left, else: length_right
 
     normalized_left = List.duplicate({"-"}, max_length - length_left) ++ left
     normalized_right = List.duplicate({"-"}, max_length - length_right) ++ right
