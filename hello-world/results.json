@@ -1,0 +1,1 @@
+{"message":null,"status":"pass","tests":[{"message":null,"name":"test says 'Hello, World!'","output":"blah blah","status":"pass","test_body":"IO.puts(\"blah blah\")\nassert HelloWorld.hello() == \"Hello, World!\""}]}
